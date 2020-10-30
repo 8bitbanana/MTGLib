@@ -24,7 +24,7 @@ namespace MTGLib
         }
     }
 
-    public class TheStack
+    public class TheStack : Zone
     {
         public Stack<StackItem> stack = new Stack<StackItem>();
 

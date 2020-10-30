@@ -107,8 +107,8 @@ namespace MTGLib
                         return false;
                     return true;
                 case Duration.ObjectInZone:
+                    //return MTG.Instance.battlefield.Has(durationData.oid);
                     throw new NotImplementedException();
-                    return MTG.Instance.battlefield.Has(durationData.oid);
                 case Duration.ObjectTapped:
                     //return MTG.Instance.objects[durationData.oid].
                     throw new NotImplementedException();

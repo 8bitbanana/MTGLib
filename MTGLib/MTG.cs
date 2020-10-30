@@ -5,9 +5,10 @@ namespace MTGLib
 {
     public class MTG
     {
-        private static readonly Lazy<MTG>
-            lazy = new Lazy<MTG>(() => new MTG());
-        public static MTG Instance { get { return lazy.Value; } }
+        private static MTG instance;
+        public static MTG Instance {
+            get { return instance; }
+        }
 
         public List<Player> players = new List<Player>();
 
@@ -89,6 +90,8 @@ namespace MTGLib
 
         public MTG(params List<MTGObject.BaseCardAttributes>[] libraries)
         {
+            instance = this;
+
             foreach (var library in libraries)
             {
                 int playerIndex = 0;
@@ -108,15 +111,6 @@ namespace MTGLib
             }
         }
 
-        private List<Modification> _allModifications = new List<Modification>();
-
-        public IReadOnlyList<Modification> AllModifications
-        {
-            get {
-                return _allModifications.AsReadOnly();
-            }
-        }
-
         private void UpdateAllModifications()
         {
             List<Modification> allMods = new List<Modification>();
@@ -124,7 +118,84 @@ namespace MTGLib
             {
                 allMods.AddRange(effect.GetModifications());
             }
+            foreach (var oid in battlefield)
+            {
+                var obj = objects[oid];
+                foreach (StaticAbility ability in obj.attr.staticAbilities)
+                {
+                    allMods.AddRange(ability.GetModifications());
+                }
+            }
             _allModifications = allMods;
+        }
+
+        public void CalculateBoardState()
+        {
+            UpdateAllModifications();
+            foreach (var x in objects)
+            {
+                OID oid = x.Key;
+                MTGObject obj = x.Value;
+                obj.CalculateAttributes();
+            }
+        }
+
+        public void MoveZone(OID oid, Zone newZone)
+        {
+            Zone oldZone = FindZoneFromOID(oid);
+            MoveZone(oid, oldZone, newZone);
+        }
+
+        public void MoveZone(OID oid, Zone oldZone, Zone newZone)
+        {
+            oldZone.Remove(oid);
+            newZone.Add(oid);
+        }
+
+        public Zone FindZoneFromOID(OID oid)
+        {
+            foreach (Zone zone in GetAllZones())
+            {
+                if (zone.Has(oid))
+                    return zone;
+            }
+            return null;
+        }
+
+        public IReadOnlyList<Zone> GetAllZones()
+        {
+            List<Zone> zones = new List<Zone>();
+            zones.Add(battlefield);
+            zones.Add(theStack);
+            zones.Add(exile);
+            foreach (Player player in players)
+            {
+                zones.Add(player.graveyard);
+                zones.Add(player.hand);
+                zones.Add(player.library);
+            }
+            return zones.AsReadOnly();
+        }
+        public IReadOnlyList<Zone> GetRevealedZones()
+        {
+            List<Zone> zones = new List<Zone>();
+            zones.Add(battlefield);
+            zones.Add(theStack);
+            zones.Add(exile);
+            foreach (Player player in players)
+            {
+                zones.Add(player.graveyard);
+            }
+            return zones.AsReadOnly();
+        }
+
+        private List<Modification> _allModifications = new List<Modification>();
+
+        public IReadOnlyList<Modification> AllModifications
+        {
+            get {
+                return _allModifications.AsReadOnly();
+            }
         }
 
         public void Start()
@@ -136,6 +207,7 @@ namespace MTGLib
                 player.Draw(7);
             }
         }
+
 
         public void PassPriority(bool actionsTaken)
         {

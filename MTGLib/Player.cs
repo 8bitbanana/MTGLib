@@ -25,7 +25,7 @@ namespace MTGLib
         {
             while (count > 0)
             {
-                hand.Push(library.Pop());
+                MTG.Instance.MoveZone(library.Get(0), library, hand);
                 count--;
             }
         }
@@ -34,7 +34,7 @@ namespace MTGLib
         {
             while (count > 0)
             {
-                graveyard.Push(library.Pop());
+                MTG.Instance.MoveZone(library.Get(0), library, graveyard);
             }
         }
     }

@@ -30,6 +30,7 @@ namespace MTGLib
             CombatBlockers,
             CombatDamage,
             CombatEnd,
+            Main2,
             End,
             Cleanup
         }
@@ -41,12 +42,19 @@ namespace MTGLib
 
         public void StartCurrentPhase()
         {
-            throw new NotImplementedException();
+            var mtg = MTG.Instance;
             switch (type)
             {
                 case PhaseType.Untap:
                     // Phasing happens
+
                     // All permanents untap
+                    foreach (OID oid in mtg.battlefield)
+                    {
+                        var mtgobj = mtg.objects[oid];
+                        mtgobj.permanentStatus.tapped = false;
+                    }
+
                     // No priority
                     break;
                 case PhaseType.Upkeep:
@@ -54,6 +62,8 @@ namespace MTGLib
                     break;
                 case PhaseType.Draw:
                     // The active player draws a card
+                    mtg.players[mtg.turn.playerTurnIndex].Draw();
+
                     // AP Priority
                     break;
                 case PhaseType.Main1:
@@ -82,6 +92,9 @@ namespace MTGLib
                 case PhaseType.CombatEnd:
                     // AP Priority
                     break;
+                case PhaseType.Main2:
+                    // AP Priority
+                    break;
                 case PhaseType.End:
                     // AP Priority
                     break;
@@ -90,6 +103,21 @@ namespace MTGLib
                     // All marked damage is removed
                     // No priority
                     break;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        public bool SorceryPhase { get
+            {
+                switch (type)
+                {
+                    case PhaseType.Main1:
+                    case PhaseType.Main2:
+                        return true;
+                    default:
+                        return false;
+                }
             }
         }
 

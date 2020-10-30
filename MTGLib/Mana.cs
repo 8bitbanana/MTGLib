@@ -26,6 +26,14 @@ namespace MTGLib
         Simic = Green | Blue
     }
 
+    public static class Util
+    {
+        public static bool ColorHas(Color col, Color test)
+        {
+            return ((test & col) == test);
+        }
+    }
+
     public class ManaSymbol
     {
         public Color color { get; private set; } = Color.Generic;
@@ -184,6 +192,7 @@ namespace MTGLib
 
         public static bool operator ==(ManaCost x, ManaCost y)
         {
+            // TODO Manacost should self-sort to make this faster
             if (x.manaSymbols.Count != y.manaSymbols.Count)
                 return false;
             var manaX = new List<ManaSymbol>(x.manaSymbols);
@@ -229,14 +238,10 @@ namespace MTGLib
                     if (mana.color == color) { countY++; }
                 }
                 var finalCount = countX - countY;
-                if (finalCount > 0)
+                for (int i = 0; i < finalCount; i++)
                 {
-                    for (int i = 0; i < finalCount; i++)
-                    {
-                        final.manaSymbols.Add(new ManaSymbol(color));
-                    }
+                    final.manaSymbols.Add(new ManaSymbol(color));
                 }
-                
             }
             return final;
         }

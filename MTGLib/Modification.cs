@@ -4,77 +4,141 @@ using System.Text;
 
 namespace MTGLib
 {
+    public class ControllerMod : Modification<int> { }
+    public class PowerMod : IntModification { }
+    public class ToughnessMod : IntModification { }
+    public class ColorMod : ColorModification { }
+
+    public class CardTypeMod : HashSetModification<MTGObject.CardType> { }
+    public class SuperTypeMod : HashSetModification<MTGObject.SuperType> { }
+    public class SubTypeMod : HashSetModification<MTGObject.SubType> { }
+
     public abstract class Modification
     {
-        public enum Operation { Subtract = -1, Override = 0, Add = 1 }
+        public enum Operation { Override, Add, Subtract }
+        public Operation operation = Operation.Override;
+
+        public Func<MTGObject, bool> condition;
     }
 
     public abstract class Modification<T> : Modification
     {
-        protected readonly T value;
-        public virtual T Modify(T input)
+        public T value;
+
+        public virtual T Modify(T original, MTGObject obj)
+        {
+            if (condition != null)
+            {
+                if (obj == null)
+                {
+                    throw new ArgumentException();
+                }
+                if (!condition(obj))
+                {
+                    return original;
+                }
+            }
+            switch (operation)
+            {
+                case Operation.Override:
+                    return Override(original);
+                case Operation.Add:
+                    return Add(original);
+                case Operation.Subtract:
+                    return Subtract(original);
+                default:
+                    throw new ArgumentException();
+            }
+        }
+
+        protected virtual T Override(T original)
         {
             return value;
         }
-    }
-
-    public class TypeMod<T> : Modification<HashSet<T>>
-    {
-        protected readonly T[] typesToAdd;
-        protected readonly T[] typesToRemove;
-
-        public override HashSet<T> Modify(HashSet<T> input)
+        protected virtual T Add (T original)
         {
-            var output = new HashSet<T>(input);
-            foreach (T type in typesToAdd)
-            {
-                output.Add(type);
-            }
-            foreach(T type in typesToRemove)
-            {
-                output.Remove(type);
-            }
-            return output;
+            throw new NotImplementedException();
+        }
+        protected virtual T Subtract (T original)
+        {
+            throw new NotImplementedException();
         }
     }
 
-    public class NameMod : Modification<string> { }
-
-    public class ManaCostMod : Modification<ManaCost>
+    public abstract class IntModification : Modification<int>
     {
-        protected readonly Operation op = Operation.Override;
-        public override ManaCost Modify(ManaCost input)
+        protected override int Add(int original)
         {
-            switch (op)
-            {
-                case Operation.Override:
-                    return value;
-                case Operation.Add:
-                    return input + value;
-                case Operation.Subtract:
-                    return input - value;
-                default:
-                    throw new ArgumentException();
-            }
+            return original + value;
+        }
+        protected override int Subtract(int original)
+        {
+            return original - value;
         }
     }
 
-    public class IntMod : Modification<int>
+    public abstract class ManaCostModification : Modification<ManaCost>
     {
-        protected readonly Operation op = Operation.Override;
-        public override int Modify(int input)
+        protected override ManaCost Add(ManaCost original)
         {
-            switch (op)
+            return original + value;
+        }
+        protected override ManaCost Subtract(ManaCost original)
+        {
+            return original - value;
+        }
+    }
+
+    public abstract class ListModification<T> : Modification<List<T>>
+    {
+        protected override List<T> Add(List<T> original)
+        {
+            List<T> toReturn = new List<T>(original);
+            toReturn.AddRange(value);
+            return toReturn;
+        }
+        protected override List<T> Subtract(List<T> original)
+        {
+            List<T> toReturn = new List<T>(original);
+            foreach (T x in value)
             {
-                case Operation.Override:
-                    return value;
-                case Operation.Add:
-                    return input + value;
-                case Operation.Subtract:
-                    return input - value;
-                default:
-                    throw new ArgumentException();
+                toReturn.Remove(x);
             }
+            return toReturn;
+        }
+    }
+
+    public abstract class HashSetModification<T> : Modification<HashSet<T>>
+    {
+        protected override HashSet<T> Add(HashSet<T> original)
+        {
+            HashSet<T> toReturn = new HashSet<T>(original);
+            foreach (T x in value)
+            {
+                toReturn.Add(x);
+            }
+            return toReturn;
+        }
+        protected override HashSet<T> Subtract(HashSet<T> original)
+        {
+            HashSet<T> toReturn = new HashSet<T>(original);
+            foreach (T x in value)
+            {
+                toReturn.Remove(x);
+            }
+            return toReturn;
+        }
+    }
+
+    public abstract class ColorModification : Modification<Color>
+    {
+        protected override Color Add(Color original)
+        {
+            return original | value;
+        }
+        protected override Color Subtract(Color original)
+        {
+            return original & ~value;
         }
     }
 }

@@ -2,22 +2,30 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
+using System.Collections;
 
 namespace MTGLib
 {
-    public class Zone
+    public class Zone : IEnumerable<OID>
     {
         protected LinkedList<OID> _objects = new LinkedList<OID>();
+        protected HashSet<OID> _existenceMap = new HashSet<OID>();
+
         public Zone() { }
 
         public int Count
         {
             get { return _objects.Count; }
         }
-       
-        public IEnumerator<OID> Objects
+
+        IEnumerator IEnumerable.GetEnumerator()
         {
-            get { return _objects.GetEnumerator(); }
+            return _objects.GetEnumerator();
+        }
+
+        public IEnumerator<OID> GetEnumerator()
+        {
+            return ((IEnumerable<OID>)_objects).GetEnumerator();
         }
 
         public void Add(OID oid, int index=0)
@@ -34,6 +42,7 @@ namespace MTGLib
             {
                 _objects.AddBefore(GetNode(index), oid);
             }
+            _existenceMap.Add(oid);
         }
 
         public void Shuffle()
@@ -70,14 +79,15 @@ namespace MTGLib
 
         public OID Pop()
         {
-            OID cid = _objects.First.Value;
+            OID oid = _objects.First.Value;
             _objects.RemoveFirst();
-            return cid;
+            _existenceMap.Remove(oid);
+            return oid;
         }
 
         public void Push(OID oid)
         {
-            _objects.AddFirst(oid);
+            Add(oid, 0);
         }
 
         public OID Get(int index=0)
@@ -87,7 +97,7 @@ namespace MTGLib
 
         public bool Has(OID oid)
         {
-            return _objects.Contains(oid);
+            return _existenceMap.Contains(oid);
         }
 
         public void Remove(OID oid)
@@ -95,6 +105,7 @@ namespace MTGLib
             bool result = _objects.Remove(oid);
             if (!result)
                 throw new ArgumentException("OID is not in this zone");
+            _existenceMap.Remove(oid);
         }
     }
 
