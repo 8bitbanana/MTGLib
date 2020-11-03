@@ -100,12 +100,23 @@ namespace MTGLib
                     break;
                 case PhaseType.Cleanup:
                     // Players discard to max hand size
+                    foreach (var player in mtg.players)
+                    {
+                        player.Discard(player.hand.DiscardsNeeded);
+                    }
+
                     // All marked damage is removed
                     // No priority
                     break;
                 default:
                     throw new NotImplementedException();
             }
+        }
+
+        public void EndCurrentPhase()
+        {
+            // Empty mana pools
+            // Poss other stuff, to check
         }
 
         public bool SorceryPhase { get

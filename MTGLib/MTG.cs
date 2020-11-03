@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace MTGLib
 {
+
     public class MTG
     {
         private static MTG instance;
@@ -92,9 +94,9 @@ namespace MTGLib
         {
             instance = this;
 
+            int playerIndex = 0;
             foreach (var library in libraries)
             {
-                int playerIndex = 0;
                 Player player = new Player();
                 foreach (var i in library)
                 {
@@ -109,6 +111,76 @@ namespace MTGLib
                 players.Add(player);
                 playerIndex++;
             }
+        }
+
+        public void GameLoop()
+        {
+            // Main loop
+            while (true)
+            {
+                // Beginning of step
+                CalculateBoardState();
+                // Stuff that triggers at start of step
+                turn.phase.StartCurrentPhase();
+                CalculateBoardState();
+
+                if (turn.phase.GivesPriority || theStack.Count > 0)
+                {
+                    // Loop until priority has finished
+                    while (true)
+                    {
+                        // Active player gets priority
+                        turn.ResetPriority();
+                        int passCount = 0;
+                        // Loop until all players have passed in a row
+                        while (true)
+                        {
+                            // Loop until current player has passed
+                            while (true)
+                            {
+                                CalculateBoardState();
+                                StateBasedActions();
+                                CalculateBoardState();
+                                if (ResolveCurrentPriority())
+                                {
+                                    passCount = 0;
+                                }
+                                else break;
+                            }
+                            passCount++;
+
+                            if (passCount <= players.Count)
+                            {
+                                turn.IncPriority(players.Count);
+                            }
+                            else break;
+                        }
+                        if (theStack.Count > 0)
+                        {
+                            CalculateBoardState();
+                            theStack.Resolve();
+                        }
+                        else break;
+                    }
+                }
+                // End of step
+                turn.phase.EndCurrentPhase();
+                turn.IncPhase();
+            }
+        }
+
+        // Returns true if the player passed
+        public bool ResolveCurrentPriority()
+        {
+            return false;
+        }
+
+        public void PushChoice(Choice choice)
+        {
+            if (choice.Resolved)
+                throw new ArgumentException("This choice is already resolved.");
+
+            choice.ConsoleResolve();
         }
 
         private void UpdateAllModifications()
@@ -164,10 +236,12 @@ namespace MTGLib
 
         public IReadOnlyList<Zone> GetAllZones()
         {
-            List<Zone> zones = new List<Zone>();
-            zones.Add(battlefield);
-            zones.Add(theStack);
-            zones.Add(exile);
+            List<Zone> zones = new List<Zone>
+            {
+                battlefield,
+                theStack,
+                exile
+            };
             foreach (Player player in players)
             {
                 zones.Add(player.graveyard);
@@ -178,10 +252,12 @@ namespace MTGLib
         }
         public IReadOnlyList<Zone> GetRevealedZones()
         {
-            List<Zone> zones = new List<Zone>();
-            zones.Add(battlefield);
-            zones.Add(theStack);
-            zones.Add(exile);
+            List<Zone> zones = new List<Zone>
+            {
+                battlefield,
+                theStack,
+                exile
+            };
             foreach (Player player in players)
             {
                 zones.Add(player.graveyard);
@@ -208,48 +284,16 @@ namespace MTGLib
             }
         }
 
-
-        public void PassPriority(bool actionsTaken)
+        public void SBALoop()
         {
-            if (!actionsTaken)
+            int count = 0;
+            while (count <= 0)
             {
-                noActionPassCount++;
-            } else
-            {
-                noActionPassCount = 0;
+                count = StateBasedActions();
             }
-
-            if (!haveAllPlayersPassed)
-            {
-                // Not all players have passed, so just pass priority
-                turn.IncPriority(players.Count);
-                return;
-            }
-            // All players have passed, continue
-
-            if (theStack.stack.Count > 0)
-            {
-                // There are still items on the stack, so resolve and reset
-                theStack.Resolve();
-                turn.ResetPriority();
-                noActionPassCount = 0;
-                return;
-            }
-            // The stack is empty, so a phase has ended
-
-            // Increment phase and increment turn if needed
-            bool turnEnded = turn.IncPhase();
-            if (turnEnded)
-            {
-                turn.IncTurn(players.Count);
-            }
-            // The new phase has started
-            turn.phase.StartCurrentPhase();
         }
 
-        
-
-        public void StateBasedActions()
+        public int StateBasedActions()
         {
 
             //   *704.5a If a player has 0 or less life, that player loses the game.
@@ -273,7 +317,7 @@ namespace MTGLib
 
             //* 704.5r If a permanent with an ability that says it can’t have more than N counters of a certain kind on it has more than N counters of that kind on it, all but N of those counters are removed from it. 704.5s If the number of lore counters on a Saga permanent is greater than or equal to its final chapter number and it isn’t the source of a chapter ability that has triggered but not yet left the stack, that Saga’s controller sacrifices it. See rule 714, “Saga Cards.”
 
-
+            return 0;
         }
     }
 }

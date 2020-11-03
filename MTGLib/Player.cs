@@ -23,20 +23,35 @@ namespace MTGLib
 
         public void Draw(int count = 1)
         {
-            while (count > 0)
+            while (count-- > 0)
             {
                 MTG.Instance.MoveZone(library.Get(0), library, hand);
-                count--;
             }
         }
 
         public void Mill(int count = 1)
         {
-            while (count > 0)
+            while (count-- > 0)
             {
                 MTG.Instance.MoveZone(library.Get(0), library, graveyard);
             }
         }
-    }
 
+        public void Discard(int count = 1)
+        {
+            Choice<OID> choice = new OIDChoice
+            {
+                Options = new List<OID>(),
+                Min = count,
+                Max = count,
+                Title = $"Discard {count} card(s)."
+            };
+            choice.Options.AddRange(hand);
+            MTG.Instance.PushChoice(choice);
+            foreach(var card in choice.Choices)
+            {
+                MTG.Instance.MoveZone(card, hand, graveyard);
+            }
+        }
+    }
 }

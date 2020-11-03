@@ -96,6 +96,14 @@ namespace MTGLib
                 subTypes = attr.subTypes;
                 staticAbilities = attr.staticAbilities;
 
+                controller = attr.owner;
+                color = attr.manaCost.identity;
+
+                Init();
+            }
+
+            public void Init()
+            {
                 if (cardTypes == null)
                     cardTypes = new HashSet<CardType>();
                 if (superTypes == null)
@@ -104,9 +112,6 @@ namespace MTGLib
                     subTypes = new HashSet<SubType>();
                 if (staticAbilities == null)
                     staticAbilities = new List<StaticAbility>();
-
-                controller = attr.owner;
-                color = attr.manaCost.identity;
             }
 
             public string name;

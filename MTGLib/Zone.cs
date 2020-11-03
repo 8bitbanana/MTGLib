@@ -112,6 +112,19 @@ namespace MTGLib
     public class Hand : Zone
     {
         int maxSize = 7;
+
+        public int DiscardsNeeded { get
+            {
+                if (Count <= maxSize)
+                {
+                    return 0;
+                }
+                else
+                {
+                    return Count - maxSize;
+                }
+            }
+        }
     }
 
     public class Library : Zone

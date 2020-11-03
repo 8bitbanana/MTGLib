@@ -4,63 +4,160 @@ using System.Text;
 
 namespace MTGLib
 {
-    public abstract class Choice<T>
+    public abstract class Choice
     {
-        protected Choice() { }
-        public virtual bool Resolve(T chosen)
+        public bool Resolved { get; protected set; } = false;
+
+        public abstract void ConsoleResolve();
+
+        protected static string Prompt(string prompt)
         {
-            if (!Verify(chosen))
-            {
+            Console.Write(prompt);
+            return Console.ReadLine();
+        }
+    }
+    public class Choice<T> : Choice
+    {
+        public List<T> Options;
+
+        public int Min = 1;
+        public int Max = 1;
+
+        public string Title = "Make a choice";
+
+        public List<T> Choices { get; protected set; }
+
+        protected virtual string OptionString(T option)
+        {
+            return option.ToString();
+        }
+
+        protected virtual bool Verify(List<T> choices)
+        {
+            if (choices.Count < Min)
                 return false;
-            }
-
-            // ????
-
+            if (choices.Count > Max)
+                return false;
             return true;
         }
-        protected abstract bool Verify(T chosen);
+
+        public override void ConsoleResolve()
+        {
+            var currentChoices = new List<T>();
+
+            // Check resolve loop 
+            while (true)
+            {
+                var currentOptions = new List<T>();
+                currentOptions.AddRange(Options);
+
+                var finished = false;
+
+                // Making choices loop
+                while (!finished)
+                {
+                    Console.WriteLine(Title);
+
+                    if (currentChoices.Count >= Min)
+                        Console.WriteLine("[n] - Stop choosing.");
+                    int index = 0;
+                    foreach (var option in currentOptions)
+                    {
+                        Console.WriteLine($"[{index}] - {OptionString(option)}");
+                        index++;
+                    }
+
+                    string input = Prompt("> ");
+                    if (input.ToLower() == "n")
+                    {
+                        // User quitting, stop making choices
+                        finished = true;
+                        break;
+                    }
+
+                    try
+                    {
+                        index = int.Parse(input);
+                    }
+                    catch (FormatException)
+                    {
+                        Console.WriteLine("Invalid input");
+                        continue;
+                    }
+                    if (index < 0 || index >= Options.Count)
+                    {
+                        Console.WriteLine("Input out of range");
+                        continue;
+                    }
+                    currentChoices.Add(currentOptions[index]);
+                    currentOptions.RemoveAt(index);
+                    if (currentChoices.Count >= Max)
+                    {
+                        // Maximum reached, stop making choices
+                        finished = true;
+                    }
+                }
+
+                if (Resolve(currentChoices))
+                    break;
+                else
+                    Console.WriteLine("Invalid choices, retrying");
+            }
+            
+        }
+
+        public bool Resolve(List<T> choices)
+        {
+            if (Verify(choices))
+            {
+                Resolved = true;
+                Choices = choices;
+            } else
+            {
+                Resolved = false;
+            }
+            return Resolved;
+        }
+    }
+    public class OIDChoice : Choice<OID>
+    {
+        protected override string OptionString(OID option)
+        {
+            MTGObject obj = MTG.Instance.objects[option];
+            string str = obj.attr.name + " -";
+            foreach (var cardType in obj.attr.cardTypes)
+            {
+                str += " " + cardType.GetString();
+            }
+            return str;
+        }
     }
 
-    public class ObjectChoice : Choice<List<OID>>
+    public struct PriorityOption
     {
-        enum ChoiceType {ANY, MINMAX}
-
-        ChoiceType choiceType;
-        int min; int max;
-
-        protected override bool Verify(List<OID> oids)
+        public enum OptionType
         {
-            switch (choiceType)
-            {
-                case ChoiceType.ANY:
-                    return true;
-                case ChoiceType.MINMAX:
-                    if (oids.Count < min)
-                        return false;
-                    if (oids.Count > max)
-                        return false;
-                    return true;
-                default:
-                    throw new ArgumentException();
-            }
+            CastSpell,
+            ActivatedAbility,
+            PassPriority,
+            ManaAbility,
+
+            // Special Actions
+            PlayLand,
+            TurnFaceUp,
+            ExileSuspendCard,
+            RetrieveCompanion,
+
+            // Special actions defined in rules 116.2c-d are very rare.
+            // I won't be implementing them until needed.
+
         }
 
-        public static ObjectChoice ChooseAny()
-        {
-            var obj = new ObjectChoice();
-            obj.choiceType = ChoiceType.ANY;
-            return obj;
-        }
-        public static ObjectChoice ChooseExact(int amount)
-        {
-            return ObjectChoice.ChooseMinMax(amount, amount);
-        }
-        public static ObjectChoice ChooseMinMax(int min, int max)
-        {
-            var obj = new ObjectChoice();
-            obj.choiceType = ChoiceType.MINMAX;
-            obj.min = min; obj.max = max;
-            return obj;
-        }
+        public OID source;
+    }
+
+    public class PriorityChoice : Choice<PriorityOption>
+    {
+
     }
 }

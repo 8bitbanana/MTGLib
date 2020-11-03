@@ -32,65 +32,6 @@ namespace MTGTestApp
                 subTypes = new HashSet<MTGObject.SubType> { MTGLib.MTGObject.SubType.Crab }
             };
 
-            var redStatic = new StaticAbility(new PowerMod
-            {
-                value = 1,
-                operation = Modification.Operation.Add,
-                condition = (obj) =>
-                {
-                    if (!obj.attr.cardTypes.Contains(MTGObject.CardType.Creature))
-                        return false;
-                    if (!Util.ColorHas(obj.identity, Color.Red))
-                        return false;
-                    if (obj.FindMyZone() != MTG.Instance.battlefield)
-                        return false;
-                    return true;
-                }
-            });
-            var whiteStatic = new StaticAbility(new ToughnessMod
-            {
-                value = 1,
-                operation = Modification.Operation.Add,
-                condition = (obj) =>
-                {
-                    if (!obj.attr.cardTypes.Contains(MTGObject.CardType.Creature))
-                        return false;
-                    if (!Util.ColorHas(obj.identity, Color.White))
-                        return false;
-                    if (obj.FindMyZone() != MTG.Instance.battlefield)
-                        return false;
-                    return true;
-                }
-            });
-
-            var allPermsAreRed = new StaticAbility(new ColorMod
-            {
-                value = Color.Red,
-                operation = Modification.Operation.Override,
-                condition = (obj) =>
-                {
-                    if (obj.FindMyZone() != MTG.Instance.battlefield)
-                        return false;
-                    return true;
-                }
-            });
-
-            var legionsInitiative = new MTGObject.BaseCardAttributes()
-            {
-                name = "Legion's Initiative",
-                manaCost = new ManaCost(ManaSymbol.Red, ManaSymbol.White),
-                cardTypes = new HashSet<MTGObject.CardType> { MTGObject.CardType.Enchantment },
-                staticAbilities = new List<StaticAbility> { redStatic, whiteStatic }
-            };
-
-            var redEnchantment = new MTGObject.BaseCardAttributes()
-            {
-                name = "Red Enchantment",
-                manaCost = new ManaCost(1, ManaSymbol.Red, ManaSymbol.Red),
-                cardTypes = new HashSet<MTGObject.CardType> { MTGObject.CardType.Enchantment },
-                staticAbilities = new List<StaticAbility> { allPermsAreRed }
-            };
-
             var lib1 = new List<MTGLib.MTGObject.BaseCardAttributes>();
             var lib2 = new List<MTGLib.MTGObject.BaseCardAttributes>();
             for (int i=0; i<30; i++)
@@ -100,38 +41,11 @@ namespace MTGTestApp
                 lib2.Add(ogre);
                 lib2.Add(crab);
             }
-            lib1.Add(legionsInitiative);
-            lib2.Add(redEnchantment);
 
             var mtg = new MTG(lib1, lib2);
 
             mtg.Start();
-
-            foreach (var x in mtg.objects)
-            {
-                if (x.Value.attr.name == "Legion's Initiative")
-                {
-                    mtg.MoveZone(x.Key, mtg.battlefield);
-                }
-                if (x.Value.attr.name == "Red Enchantment")
-                {
-                    mtg.MoveZone(x.Key, mtg.battlefield);
-                }
-            }
-
-            mtg.MoveZone(mtg.players[0].hand.Get(0), mtg.players[0].hand, mtg.battlefield);
-            mtg.MoveZone(mtg.players[0].hand.Get(0), mtg.players[0].hand, mtg.battlefield);
-            mtg.MoveZone(mtg.players[0].hand.Get(0), mtg.players[0].hand, mtg.battlefield);
-            mtg.MoveZone(mtg.players[1].hand.Get(0), mtg.players[1].hand, mtg.battlefield);
-            mtg.MoveZone(mtg.players[1].hand.Get(0), mtg.players[1].hand, mtg.battlefield);
-            mtg.MoveZone(mtg.players[1].hand.Get(0), mtg.players[1].hand, mtg.battlefield);
-
-            mtg.CalculateBoardState();
-            foreach (OID oid in mtg.battlefield)
-            {
-                var obj = mtg.objects[oid];
-                Console.WriteLine($"{obj.attr.name} {obj.attr.power}/{obj.attr.toughness}");
-            }
+            mtg.GameLoop();
         }
     }
 }
