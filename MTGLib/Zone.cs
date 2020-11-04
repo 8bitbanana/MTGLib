@@ -6,12 +6,15 @@ using System.Collections;
 
 namespace MTGLib
 {
-    public class Zone : IEnumerable<OID>
+    public abstract class BaseZone
     {
-        protected LinkedList<OID> _objects = new LinkedList<OID>();
-        protected HashSet<OID> _existenceMap = new HashSet<OID>();
 
-        public Zone() { }
+    }
+
+    public abstract class BaseZone<T> : BaseZone, IEnumerable<T>
+    {
+        protected LinkedList<T> _objects = new LinkedList<T>();
+        protected HashSet<T> _existenceMap = new HashSet<T>();
 
         public int Count
         {
@@ -23,38 +26,40 @@ namespace MTGLib
             return _objects.GetEnumerator();
         }
 
-        public IEnumerator<OID> GetEnumerator()
+        public IEnumerator<T> GetEnumerator()
         {
-            return ((IEnumerable<OID>)_objects).GetEnumerator();
+            return ((IEnumerable<T>)_objects).GetEnumerator();
         }
 
-        public void Add(OID oid, int index=0)
+        public virtual void Add(T item, int index = 0)
         {
-            if (Has(oid))
+            if (Has(item))
                 throw new ArgumentException("OID is already in this zone");
             if (index == 0)
             {
-                _objects.AddFirst(oid);
-            } else if (index >= _objects.Count)
-            {
-                _objects.AddLast(oid);
-            } else
-            {
-                _objects.AddBefore(GetNode(index), oid);
+                _objects.AddFirst(item);
             }
-            _existenceMap.Add(oid);
+            else if (index >= _objects.Count)
+            {
+                _objects.AddLast(item);
+            }
+            else
+            {
+                _objects.AddBefore(GetNode(index), item);
+            }
+            _existenceMap.Add(item);
         }
 
         public void Shuffle()
         {
             int count = _objects.Count;
             Random rand = new Random();
-            _objects = new LinkedList<OID>(_objects.OrderBy(
+            _objects = new LinkedList<T>(_objects.OrderBy(
                 (o) => { return rand.Next() % count; }
             ));
         }
 
-        private LinkedListNode<OID> GetNode(int index)
+        private LinkedListNode<T> GetNode(int index)
         {
             int count = _objects.Count;
             if (index == 0)
@@ -77,36 +82,41 @@ namespace MTGLib
             }
         }
 
-        public OID Pop()
+        public virtual T Pop()
         {
-            OID oid = _objects.First.Value;
+            T item = _objects.First.Value;
             _objects.RemoveFirst();
-            _existenceMap.Remove(oid);
-            return oid;
+            _existenceMap.Remove(item);
+            return item;
         }
 
-        public void Push(OID oid)
+        public virtual void Push(T item)
         {
-            Add(oid, 0);
+            Add(item, 0);
         }
 
-        public OID Get(int index=0)
+        public virtual T Get(int index = 0)
         {
             return GetNode(index).Value;
         }
 
-        public bool Has(OID oid)
+        public virtual bool Has(T item)
         {
-            return _existenceMap.Contains(oid);
+            return _existenceMap.Contains(item);
         }
 
-        public void Remove(OID oid)
+        public void Remove(T item)
         {
-            bool result = _objects.Remove(oid);
+            bool result = _objects.Remove(item);
             if (!result)
                 throw new ArgumentException("OID is not in this zone");
-            _existenceMap.Remove(oid);
+            _existenceMap.Remove(item);
         }
+    }
+
+    public class Zone : BaseZone<OID>
+    {
+        
     }
 
     public class Hand : Zone

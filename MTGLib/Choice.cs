@@ -27,6 +27,14 @@ namespace MTGLib
 
         public List<T> Choices { get; protected set; }
 
+        public T FirstChoice { get
+            {
+                if (Choices.Count > 0)
+                    return Choices[0];
+                throw new IndexOutOfRangeException();
+            }
+        }
+
         protected virtual string OptionString(T option)
         {
             return option.ToString();
@@ -153,11 +161,88 @@ namespace MTGLib
 
         }
 
+        public OptionType type;
         public OID source;
+
+        public override string ToString()
+        {
+            string s = type.GetString();
+            if (source != null)
+            {
+                s += " -> " + MTG.Instance.objects[source].attr.name;
+            }
+            return s;
+        }
     }
 
     public class PriorityChoice : Choice<PriorityOption>
     {
+        protected override string OptionString(PriorityOption option)
+        {
+            return option.ToString();
+        }
 
+        public PriorityChoice ()
+        {
+            Min = 1; Max = 1;
+            Title = "Choose what to do with your priority!";
+            var mtg = MTG.Instance;
+            var player = mtg.players[mtg.turn.playerPriorityIndex];
+
+            // What can a player do when they have priority?
+            Options = new List<PriorityOption>();
+
+            // They can pass, of course
+            Options.Add(new PriorityOption
+            {
+                type = PriorityOption.OptionType.PassPriority
+            });
+
+            // 117.1a A player may cast an instant spell any time they have priority. A player may cast a noninstant spell during their main phase any time they have priority and the stack is empty.
+            foreach (var oid in player.hand)
+            {
+                var cardtypes = mtg.objects[oid].attr.cardTypes;
+
+                // TODO - This is an oversimplification
+                if (cardtypes.Contains(MTGObject.CardType.Land))
+                    continue;
+
+                // TODO - Also an oversimplification :) (for the card type check at least)
+                if (!cardtypes.Contains(MTGObject.CardType.Instant))
+                {
+                    if (!mtg.turn.ActivePlayerPriority)
+                        continue;
+                    if (!mtg.turn.phase.SorceryPhase)
+                        continue;
+                    if (mtg.theStack.Count > 0)
+                        continue;
+                }
+
+                Options.Add(new PriorityOption
+                {
+                    type = PriorityOption.OptionType.CastSpell,
+                    source = oid
+                });
+            }
+
+            // 117.1b A player may activate an activated ability any time they have priority.
+
+            // 117.1c A player may take some special actions any time they have priority.A player may take other special actions during their main phase any time they have priority and the stack is empty.See rule 116, “Special Actions.”
+            foreach(var oid in player.hand)
+            {
+                var cardtypes = mtg.objects[oid].attr.cardTypes;
+                if (mtg.turn.phase.SorceryPhase && cardtypes.Contains(MTGObject.CardType.Land))
+                {
+                    // TODO - One land per turn. Need the events log and a land drop total system
+                    Options.Add(new PriorityOption
+                    {
+                        type = PriorityOption.OptionType.PlayLand,
+                        source = oid
+                    });
+                }
+            }
+
+            // 117.1d A player may activate a mana ability whenever they have priority, whenever they are casting a spell or activating an ability that requires a mana payment, or whenever a rule or effect asks for a mana payment(even in the middle of casting or resolving a spell or activating or resolving an ability).
+        }
     }
 }

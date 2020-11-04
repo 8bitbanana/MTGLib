@@ -148,11 +148,15 @@ namespace MTGLib
         public override string ToString()
         {
             string s = "";
+            int generic = 0;
             foreach (var mana in manaSymbols)
             {
-                s += mana.ToString();
+                if (mana.IsColored)
+                    s += mana.ToString();
+                else
+                    generic += mana.cmc;
             }
-            return s;
+            return $"{generic}{s}";
         }
 
         public static ManaCost operator +(ManaCost x, ManaCost y)
@@ -164,20 +168,6 @@ namespace MTGLib
             var newManaCost = new ManaCost();
             newManaCost.manaSymbols.AddRange(allMana);
             return newManaCost;
-        }
-
-        public static (List<ManaSymbol> colored, int generic) SplitMana(ManaCost x)
-        {
-            var colored = new List<ManaSymbol>();
-            var generic = 0;
-            foreach (var mana in x.manaSymbols)
-            {
-                if (mana.IsColored)
-                    colored.Add(mana);
-                else
-                    generic += mana.cmc;
-            }
-            return (colored, generic);
         }
 
         public override bool Equals(object obj)

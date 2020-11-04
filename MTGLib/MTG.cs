@@ -45,6 +45,10 @@ namespace MTGLib
                 playerPriorityIndex = playerTurnIndex;
             }
 
+            public bool ActivePlayerPriority {
+                get { return playerPriorityIndex == playerTurnIndex; }
+            }
+
             // Returns true if it rolled over
             public bool IncTurn(int playerCount)
             {
@@ -121,6 +125,11 @@ namespace MTGLib
                 // Beginning of step
                 CalculateBoardState();
                 // Stuff that triggers at start of step
+                Console.WriteLine("Start " + turn.phase.type.GetString());
+                Console.WriteLine("Active player - " + turn.playerTurnIndex);
+                Console.WriteLine();
+                theStack.PPrint();
+                Console.WriteLine();
                 turn.phase.StartCurrentPhase();
                 CalculateBoardState();
 
@@ -138,18 +147,20 @@ namespace MTGLib
                             // Loop until current player has passed
                             while (true)
                             {
+                                Console.WriteLine("Priority for player " + turn.playerPriorityIndex);
                                 CalculateBoardState();
-                                StateBasedActions();
+                                SBALoop();
                                 CalculateBoardState();
-                                if (ResolveCurrentPriority())
+                                bool passed = ResolveCurrentPriority();
+                                if (passed) break;
+                                else
                                 {
                                     passCount = 0;
                                 }
-                                else break;
                             }
                             passCount++;
 
-                            if (passCount <= players.Count)
+                            if (passCount < players.Count)
                             {
                                 turn.IncPriority(players.Count);
                             }
@@ -158,12 +169,14 @@ namespace MTGLib
                         if (theStack.Count > 0)
                         {
                             CalculateBoardState();
-                            theStack.Resolve();
+                            theStack.PopAndResolve();
                         }
                         else break;
                     }
                 }
                 // End of step
+                Console.WriteLine();
+                CalculateBoardState();
                 turn.phase.EndCurrentPhase();
                 turn.IncPhase();
             }
@@ -172,6 +185,21 @@ namespace MTGLib
         // Returns true if the player passed
         public bool ResolveCurrentPriority()
         {
+            PriorityChoice choice = new PriorityChoice();
+            choice.ConsoleResolve();
+            switch (choice.FirstChoice.type)
+            {
+                case PriorityOption.OptionType.PassPriority:
+                    return true;
+                case PriorityOption.OptionType.CastSpell:
+                    MoveZone(choice.FirstChoice.source, theStack);
+                    break;
+                case PriorityOption.OptionType.PlayLand:
+                    MoveZone(choice.FirstChoice.source, battlefield);
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
             return false;
         }
 
@@ -212,31 +240,42 @@ namespace MTGLib
             }
         }
 
-        public void MoveZone(OID oid, Zone newZone)
+        public void MoveZone(OID oid, BaseZone newZone)
         {
-            Zone oldZone = FindZoneFromOID(oid);
+            BaseZone oldZone = FindZoneFromOID(oid);
             MoveZone(oid, oldZone, newZone);
         }
 
-        public void MoveZone(OID oid, Zone oldZone, Zone newZone)
+        public void MoveZone(OID oid, BaseZone oldZone, BaseZone newZone)
         {
-            oldZone.Remove(oid);
-            newZone.Add(oid);
+            if (oldZone is TheStack)
+                (oldZone as TheStack).Remove(oid);
+            else if (oldZone is Zone)
+                (oldZone as Zone).Remove(oid);
+
+            if (newZone is TheStack)
+                (newZone as TheStack).Push(oid);
+            else if (newZone is Zone)
+                (newZone as Zone).Push(oid);
         }
 
-        public Zone FindZoneFromOID(OID oid)
+        public BaseZone FindZoneFromOID(OID oid)
         {
-            foreach (Zone zone in GetAllZones())
+            foreach (BaseZone zone in GetAllZones())
             {
-                if (zone.Has(oid))
-                    return zone;
+                if (zone is Zone castZone)
+                    if (castZone.Has(oid))
+                        return zone;
+                if (zone is TheStack castStack)
+                    if (castStack.Has(oid))
+                        return zone;
             }
             return null;
         }
 
-        public IReadOnlyList<Zone> GetAllZones()
+        public IReadOnlyList<BaseZone> GetAllZones()
         {
-            List<Zone> zones = new List<Zone>
+            List<BaseZone> zones = new List<BaseZone>
             {
                 battlefield,
                 theStack,
@@ -248,11 +287,12 @@ namespace MTGLib
                 zones.Add(player.hand);
                 zones.Add(player.library);
             }
+            
             return zones.AsReadOnly();
         }
-        public IReadOnlyList<Zone> GetRevealedZones()
+        public IReadOnlyList<BaseZone> GetRevealedZones()
         {
-            List<Zone> zones = new List<Zone>
+            List<BaseZone> zones = new List<BaseZone>
             {
                 battlefield,
                 theStack,
@@ -274,6 +314,19 @@ namespace MTGLib
             }
         }
 
+        // Get a list of players in APNAP order
+        public IReadOnlyList<Player> APNAP { get
+            {
+                var ret = new List<Player>();
+                for (int i = 0; i<players.Count; i++)
+                {
+                    int index = (i + turn.playerTurnIndex) % players.Count;
+                    ret.Add(players[index]);
+                }
+                return ret.AsReadOnly();
+            }
+        }
+
         public void Start()
         {
             turn.Init();
@@ -286,10 +339,10 @@ namespace MTGLib
 
         public void SBALoop()
         {
-            int count = 0;
-            while (count <= 0)
+            bool actionsToDo = true;
+            while (actionsToDo)
             {
-                count = StateBasedActions();
+                actionsToDo = StateBasedActions() > 0;
             }
         }
 

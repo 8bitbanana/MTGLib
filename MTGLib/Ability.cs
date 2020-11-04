@@ -26,6 +26,31 @@ namespace MTGLib
         }
     }
 
+    public class ResolutionAbility
+    {
+        List<Action<OID>> effects = new List<Action<OID>>();
+
+        public ResolutionAbility() { }
+
+        public ResolutionAbility(params Action<OID>[] resolutionEffects)
+        {
+            effects.AddRange(resolutionEffects);
+        }
+
+        public void AddEffect(Action<OID> effect)
+        {
+            effects.Add(effect);
+        }
+
+        public void Resolve(OID source)
+        {
+            foreach(var effect in effects)
+            {
+                effect(source);
+            }
+        }
+    }
+
     public class CharacteristicAbility
     {
         public CharacteristicAbility()

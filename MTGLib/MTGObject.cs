@@ -171,6 +171,19 @@ namespace MTGLib
             ResetAttributes();
         }
 
+        public void Resolve()
+        {
+            MTG mtg = MTG.Instance;
+            if (attr.cardTypes.Contains(CardType.Instant) ||
+                attr.cardTypes.Contains(CardType.Sorcery))
+            {
+                throw new NotImplementedException();
+            } else
+            {
+                mtg.MoveZone(FindMyOID(), mtg.battlefield);
+            }
+        }
+
         public void ResetAttributes()
         {
             attributes = new MTGObjectAttributes();
@@ -187,6 +200,13 @@ namespace MTGLib
             counters.Clear();
         }
 
+        public override string ToString()
+        {
+            if (attr.name.Length > 0)
+                return attr.name;
+            return "[[Unnamed Object]]";
+        }
+
         public OID FindMyOID()
         {
             var mtg = MTG.Instance;
@@ -198,7 +218,7 @@ namespace MTGLib
             return null;
         }
 
-        public Zone FindMyZone()
+        public BaseZone FindMyZone()
         {
             var mtg = MTG.Instance;
             OID myOid = FindMyOID();

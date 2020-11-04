@@ -137,7 +137,6 @@ namespace MTGLib
                 switch (type)
                 {
                     case PhaseType.Untap:
-                    case PhaseType.Draw:
                     case PhaseType.Cleanup:
                         return false;
                     default:

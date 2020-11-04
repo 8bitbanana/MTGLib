@@ -39,6 +39,7 @@ namespace MTGLib
 
         public void Discard(int count = 1)
         {
+            if (count < 1) return;
             Choice<OID> choice = new OIDChoice
             {
                 Options = new List<OID>(),
