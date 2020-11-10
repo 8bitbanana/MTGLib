@@ -22,7 +22,7 @@ namespace MTGLib
             public int? player;
             public OID oid;
             public Phase.PhaseType? phase;
-            public BaseZone zone;
+            public Zone zone;
         }
 
         protected readonly int startTurn;

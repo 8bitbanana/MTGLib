@@ -240,42 +240,30 @@ namespace MTGLib
             }
         }
 
-        public void MoveZone(OID oid, BaseZone newZone)
+        public void MoveZone(OID oid, Zone newZone)
         {
-            BaseZone oldZone = FindZoneFromOID(oid);
+            Zone oldZone = FindZoneFromOID(oid);
             MoveZone(oid, oldZone, newZone);
         }
 
-        public void MoveZone(OID oid, BaseZone oldZone, BaseZone newZone)
+        public void MoveZone(OID oid, Zone oldZone, Zone newZone)
         {
-            if (oldZone is TheStack)
-                (oldZone as TheStack).Remove(oid);
-            else if (oldZone is Zone)
-                (oldZone as Zone).Remove(oid);
-
-            if (newZone is TheStack)
-                (newZone as TheStack).Push(oid);
-            else if (newZone is Zone)
-                (newZone as Zone).Push(oid);
+            oldZone.Remove(oid);
+            newZone.Push(oid);
         }
 
-        public BaseZone FindZoneFromOID(OID oid)
+        public Zone FindZoneFromOID(OID oid)
         {
-            foreach (BaseZone zone in GetAllZones())
+            foreach (Zone zone in GetAllZones())
             {
-                if (zone is Zone castZone)
-                    if (castZone.Has(oid))
-                        return zone;
-                if (zone is TheStack castStack)
-                    if (castStack.Has(oid))
-                        return zone;
+                if (zone.Has(oid)) return zone;
             }
             return null;
         }
 
-        public IReadOnlyList<BaseZone> GetAllZones()
+        public IReadOnlyList<Zone> GetAllZones()
         {
-            List<BaseZone> zones = new List<BaseZone>
+            List<Zone> zones = new List<Zone>
             {
                 battlefield,
                 theStack,
@@ -290,9 +278,9 @@ namespace MTGLib
             
             return zones.AsReadOnly();
         }
-        public IReadOnlyList<BaseZone> GetRevealedZones()
+        public IReadOnlyList<Zone> GetRevealedZones()
         {
-            List<BaseZone> zones = new List<BaseZone>
+            List<Zone> zones = new List<Zone>
             {
                 battlefield,
                 theStack,

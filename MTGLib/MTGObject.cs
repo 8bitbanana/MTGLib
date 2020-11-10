@@ -155,7 +155,16 @@ namespace MTGLib
             Legendary, Basic, Token
         }
 
-        public enum SubType { Ogre, Warrior, Crab };
+        public enum SubType {
+            Ogre,
+            Warrior,
+            Crab,
+            Plains,
+            Mountain,
+            Swamp,
+            Island,
+            Forest
+        };
 
         protected readonly BaseCardAttributes baseCardAttributes;
         protected MTGObjectAttributes attributes;
@@ -218,7 +227,7 @@ namespace MTGLib
             return null;
         }
 
-        public BaseZone FindMyZone()
+        public Zone FindMyZone()
         {
             var mtg = MTG.Instance;
             OID myOid = FindMyOID();

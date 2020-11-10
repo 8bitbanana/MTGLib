@@ -19,7 +19,22 @@ namespace MTGTestApp
                 cardTypes = new HashSet<MTGLib.MTGObject.CardType> { MTGLib.MTGObject.CardType.Creature },
                 subTypes = new HashSet<MTGLib.MTGObject.SubType> { MTGLib.MTGObject.SubType.Ogre, MTGLib.MTGObject.SubType.Warrior }
             };
-            
+
+            var island = new MTGLib.MTGObject.BaseCardAttributes()
+            {
+                name = "Island",
+                cardTypes = new HashSet<MTGObject.CardType> { MTGObject.CardType.Land },
+                superTypes = new HashSet<MTGObject.SuperType> { MTGObject.SuperType.Basic },
+                subTypes = new HashSet<MTGObject.SubType> { MTGObject.SubType.Island }
+            };
+            var mountain = new MTGLib.MTGObject.BaseCardAttributes()
+            {
+                name = "Mountain",
+                cardTypes = new HashSet<MTGObject.CardType> { MTGObject.CardType.Land },
+                superTypes = new HashSet<MTGObject.SuperType> { MTGObject.SuperType.Basic },
+                subTypes = new HashSet<MTGObject.SubType> { MTGObject.SubType.Mountain }
+            };
+
             var crab = new MTGLib.MTGObject.BaseCardAttributes()
             {
                 name = "Wishcoin Crab",

@@ -109,7 +109,7 @@ namespace MTGLib
         {
             bool result = _objects.Remove(item);
             if (!result)
-                throw new ArgumentException("OID is not in this zone");
+                throw new ArgumentException("Item is not in this zone");
             _existenceMap.Remove(item);
         }
     }
