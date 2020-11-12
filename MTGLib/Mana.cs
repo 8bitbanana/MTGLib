@@ -139,7 +139,7 @@ namespace MTGLib
             foreach (var manaToPay in cost)
             {
                 List<ManaSymbol> possManaSymbols = new List<ManaSymbol>();
-                foreach (var mana in currentMana)
+                foreach (var mana in currentMana) 
                 {
                     // TODO - Possible oversimplification?
                     if ((mana.color & manaToPay.color) != Color.Generic)

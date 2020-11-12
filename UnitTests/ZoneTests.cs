@@ -43,5 +43,26 @@ namespace UnitTests
             Assert.AreEqual(zone.Count, 3);
             Assert.AreEqual(zone.Get(0), cid3);
         }
+
+        [TestMethod]
+        public void TestHand()
+        {
+            Hand hand = new Hand();
+            Assert.IsTrue(hand.DiscardsNeeded == 0);
+            for (int i = 0; i < 7; i++)
+                hand.Add(new OID());
+            Assert.IsTrue(hand.DiscardsNeeded == 0);
+            hand.Add(new OID());
+            Assert.IsTrue(hand.DiscardsNeeded == 1);
+            for (int i = 0; i < 7; i++)
+                hand.Add(new OID());
+            Assert.IsTrue(hand.DiscardsNeeded == 8);
+            hand.maxSize = 5;
+            Assert.IsTrue(hand.DiscardsNeeded == 10);
+            hand.maxSize = 50;
+            Assert.IsTrue(hand.DiscardsNeeded == 0);
+            hand.maxSize = -1;
+            Assert.IsTrue(hand.DiscardsNeeded == 0);
+        }
     }
 }
