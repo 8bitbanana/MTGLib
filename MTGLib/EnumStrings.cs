@@ -21,6 +21,23 @@ namespace MTGLib
             };
         }
 
+        public static bool HasColor(this Color color, Color test)
+        {
+            return ((test & color) == test);
+        }
+
+        public static bool IsPermanentType(this MTGObject.CardType cardType)
+        {
+            switch (cardType)
+            {
+                case MTGObject.CardType.Instant:
+                case MTGObject.CardType.Sorcery:
+                    return false;
+                default:
+                    return true;
+            }
+        }
+
         public static string GetString(this MTGObject.SuperType superType)
         {
             return superType switch
@@ -44,7 +61,7 @@ namespace MTGLib
             return optionType switch
             {
                 PriorityOption.OptionType.CastSpell => "Cast a spell",
-                PriorityOption.OptionType.ActivatedAbility => "Activate an ability",
+                PriorityOption.OptionType.ActivateAbility => "Activate an ability",
                 PriorityOption.OptionType.PassPriority => "Pass priority",
                 PriorityOption.OptionType.ManaAbility => "Activate a mana ability",
                 PriorityOption.OptionType.PlayLand => "Play a land",

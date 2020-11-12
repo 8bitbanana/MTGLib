@@ -67,8 +67,30 @@ namespace MTGLib
         }
     }
 
-    public class MTGObject
+    public class AbilityObject : MTGObject
     {
+        readonly OID source;
+
+        readonly ResolutionAbility resolutionAbility;
+
+        public enum AbilityType { Activated, Triggered }
+        public readonly AbilityType abilityType;
+
+        public AbilityObject(OID source, ResolutionAbility resolutionAbility, AbilityType abilityType)
+        {
+            this.source = source;
+            this.resolutionAbility = resolutionAbility;
+            this.abilityType = abilityType;
+        }
+
+        public override void Resolve()
+        {
+            resolutionAbility.Resolve(source);
+        }
+    }
+
+    public class MTGObject
+    { 
         public struct BaseCardAttributes
         {
             public string name;
@@ -81,6 +103,8 @@ namespace MTGLib
             public int owner;
             public int loyalty;
             public List<StaticAbility> staticAbilities;
+            public List<ResolutionAbility> spellAbilities;
+            public List<ActivatedAbility> activatedAbilities;
         }
 
         public struct MTGObjectAttributes
@@ -95,15 +119,24 @@ namespace MTGLib
                 superTypes = attr.superTypes;
                 subTypes = attr.subTypes;
                 staticAbilities = attr.staticAbilities;
+                activatedAbilities = attr.activatedAbilities;
 
                 controller = attr.owner;
-                color = attr.manaCost.identity;
+                if (attr.manaCost != null)
+                {
+                    color = attr.manaCost.identity;
+                } else
+                {
+                    color = Color.Generic;
+                }
 
                 Init();
             }
 
             public void Init()
             {
+                if (name == null)
+                    name = "";
                 if (cardTypes == null)
                     cardTypes = new HashSet<CardType>();
                 if (superTypes == null)
@@ -112,10 +145,14 @@ namespace MTGLib
                     subTypes = new HashSet<SubType>();
                 if (staticAbilities == null)
                     staticAbilities = new List<StaticAbility>();
+                if (spellAbilities == null)
+                    spellAbilities = new List<ResolutionAbility>();
+                if (activatedAbilities == null)
+                    activatedAbilities = new List<ActivatedAbility>();
             }
 
             public string name;
-            public ManaCost manaCost;
+            public ManaCost manaCost; // manacost can be null
             public int power;
             public int toughness;
             public int controller;
@@ -124,6 +161,8 @@ namespace MTGLib
             public HashSet<SuperType> superTypes;
             public HashSet<SubType> subTypes;
             public List<StaticAbility> staticAbilities;
+            public List<ResolutionAbility> spellAbilities;
+            public List<ActivatedAbility> activatedAbilities;
         }
 
         public struct PermanentStatus
@@ -174,37 +213,50 @@ namespace MTGLib
 
         public MTGObjectAttributes attr { get { return attributes; } }
 
+        public int owner { get { return baseCardAttributes.owner; } }
+
+        public bool CanBePermanent { get
+            {
+                foreach (CardType cardType in attr.cardTypes)
+                {
+                    if (cardType.IsPermanentType()) return true;
+                }
+                return false;
+            }
+        }
+
+        public MTGObject()
+        {
+            baseCardAttributes = new BaseCardAttributes();
+            ResetAttributes();
+        }
+
         public MTGObject(BaseCardAttributes baseAttr)
         {
             baseCardAttributes = baseAttr;
             ResetAttributes();
         }
 
-        public void Resolve()
+        public virtual void Resolve()
         {
-            MTG mtg = MTG.Instance;
-            if (attr.cardTypes.Contains(CardType.Instant) ||
-                attr.cardTypes.Contains(CardType.Sorcery))
+            foreach (var ability in attr.spellAbilities)
             {
-                throw new NotImplementedException();
-            } else
-            {
-                mtg.MoveZone(FindMyOID(), mtg.battlefield);
+                ability.Resolve(FindMyOID());
             }
         }
 
-        public void ResetAttributes()
+        protected void ResetAttributes()
         {
             attributes = new MTGObjectAttributes();
             attributes.Import(baseCardAttributes);
         }
 
-        public void ResetPermanentStatus()
+        protected void ResetPermanentStatus()
         {
             permanentStatus.Reset();
         }
 
-        public void ClearCounters()
+        protected void ClearCounters()
         {
             counters.Clear();
         }
@@ -216,7 +268,7 @@ namespace MTGLib
             return "[[Unnamed Object]]";
         }
 
-        public OID FindMyOID()
+        protected OID FindMyOID()
         {
             var mtg = MTG.Instance;
             foreach (var x in mtg.objects)
@@ -227,7 +279,7 @@ namespace MTGLib
             return null;
         }
 
-        public Zone FindMyZone()
+        protected Zone FindMyZone()
         {
             var mtg = MTG.Instance;
             OID myOid = FindMyOID();
@@ -254,12 +306,36 @@ namespace MTGLib
                 if (mod is ControllerMod cast)
                 {
                     attributes.controller = cast.Modify(attributes.controller, this);
+                    indexes.RemoveAt(i);
+                    continue;
                 }
             }
 
             //613.1c Layer 3: Text - changing effects are applied.See rule 612, “Text - Changing Effects.”
 
             //613.1d Layer 4: Type - changing effects are applied.These include effects that change an object’s card type, subtype, and / or supertype.
+            for (int i = indexes.Count - 1; i >= 0; i--)
+            {
+                var mod = allMods[indexes[i]];
+                if (mod is CardTypeMod cast)
+                {
+                    attributes.cardTypes = cast.Modify(attributes.cardTypes, this);
+                    indexes.RemoveAt(i);
+                    continue;
+                }
+                if (mod is SubTypeMod cast1)
+                {
+                    attributes.subTypes = cast1.Modify(attributes.subTypes, this);
+                    indexes.RemoveAt(i);
+                    continue;
+                }
+                if (mod is SuperTypeMod cast2)
+                {
+                    attributes.superTypes = cast2.Modify(attributes.superTypes, this);
+                    indexes.RemoveAt(i);
+                    continue;
+                }
+            }
 
             //613.1e Layer 5: Color - changing effects are applied.
             for (int i = indexes.Count-1; i>=0; i--)
@@ -268,6 +344,8 @@ namespace MTGLib
                 if (mod is ColorMod cast)
                 {
                     attributes.color = cast.Modify(attributes.color, this);
+                    indexes.RemoveAt(i);
+                    continue;
                 }
             }
 

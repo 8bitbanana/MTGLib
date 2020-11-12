@@ -26,14 +26,6 @@ namespace MTGLib
         Simic = Green | Blue
     }
 
-    public static class Util
-    {
-        public static bool ColorHas(Color col, Color test)
-        {
-            return ((test & col) == test);
-        }
-    }
-
     public class ManaSymbol
     {
         public Color color { get; private set; } = Color.Generic;
@@ -83,6 +75,14 @@ namespace MTGLib
 
         public static bool operator ==(ManaSymbol x, ManaSymbol y)
         {
+            if (object.ReferenceEquals(x, null))
+            {
+                return object.ReferenceEquals(y, null);
+            }
+            if (object.ReferenceEquals(y, null))
+            {
+                return object.ReferenceEquals(x, null);
+            }
             return (x.color == y.color);
         }
 
@@ -102,6 +102,71 @@ namespace MTGLib
         public bool IsColored { get { return color != Color.Generic; } }
     }
 
+    public class ManaPool
+    {
+        List<ManaSymbol> manaSymbols = new List<ManaSymbol>();
+
+        public ManaPool() { }
+
+        public void AddMana(params ManaSymbol[] mana)
+        {
+            manaSymbols.AddRange(mana);
+        }
+
+        public void RemoveMana(params ManaSymbol[] mana)
+        {
+            foreach (var manaSymbol in mana)
+            {
+                manaSymbols.Remove(manaSymbol);
+            }
+        }
+
+        public IEnumerator<ManaSymbol> GetEnumerator()
+        {
+            return manaSymbols.GetEnumerator();
+        }
+
+        public int Count { get { return manaSymbols.Count; } }
+
+        public void Empty()
+        {
+            manaSymbols.Clear();
+        }
+
+        public bool PayFor(ManaCost cost)
+        {
+            var currentMana = new List<ManaSymbol>(manaSymbols);
+            foreach (var manaToPay in cost)
+            {
+                List<ManaSymbol> possManaSymbols = new List<ManaSymbol>();
+                foreach (var mana in currentMana)
+                {
+                    // TODO - Possible oversimplification?
+                    if ((mana.color & manaToPay.color) != Color.Generic)
+                    {
+                        possManaSymbols.Add(mana);
+                    }
+                }
+                if (possManaSymbols.Count == 0)
+                {
+                    Console.WriteLine("Cannot pay for mana cost");
+                    return false;
+                }
+
+                var choice = new Choice<ManaSymbol>()
+                {
+                    Title = $"Choose which mana to use to pay for {manaToPay}",
+                    Min = 1, Max = 1,
+                    Options = possManaSymbols
+                };
+                MTG.Instance.PushChoice(choice);
+                currentMana.Remove(choice.FirstChoice);
+            }
+            manaSymbols = currentMana;
+            return true;
+        }
+    }
+
     public class ManaCost
     {
         public List<ManaSymbol> manaSymbols = new List<ManaSymbol>();
@@ -115,6 +180,11 @@ namespace MTGLib
                 manaSymbols.Add(ManaSymbol.One);
             }
             manaSymbols.AddRange(mana);
+        }
+
+        public IEnumerator<ManaSymbol> GetEnumerator()
+        {
+            return manaSymbols.GetEnumerator();
         }
 
         public ManaCost(params ManaSymbol[] mana)
@@ -156,7 +226,7 @@ namespace MTGLib
                 else
                     generic += mana.cmc;
             }
-            return $"{generic}{s}";
+            return $"{{{generic}}}{s}";
         }
 
         public static ManaCost operator +(ManaCost x, ManaCost y)
@@ -182,6 +252,14 @@ namespace MTGLib
 
         public static bool operator ==(ManaCost x, ManaCost y)
         {
+            if (object.ReferenceEquals(x, null))
+            {
+                return object.ReferenceEquals(y, null);
+            }
+            if (object.ReferenceEquals(y, null))
+            {
+                return object.ReferenceEquals(x, null);
+            }
             // TODO Manacost should self-sort to make this faster
             if (x.manaSymbols.Count != y.manaSymbols.Count)
                 return false;

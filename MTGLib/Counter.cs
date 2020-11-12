@@ -27,7 +27,7 @@ namespace MTGLib
         }
 
         public bool Has(Counter counter)
-        {
+        { 
             return counters.ContainsKey(counter);
         }
 
@@ -50,7 +50,7 @@ namespace MTGLib
                 {
                     counters[counter] -= amount;
                     return true;
-                } else if (counters[counter] == amount)
+                } else
                 {
                     counters.Remove(counter);
                     return true;

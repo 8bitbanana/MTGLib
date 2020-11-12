@@ -14,6 +14,8 @@ namespace MTGLib
 
         public int life = 20;
 
+        public ManaPool manaPool = new ManaPool();
+
         public Dictionary<string, int> counters = new Dictionary<string, int>();
 
         public Player()
@@ -25,7 +27,9 @@ namespace MTGLib
         {
             while (count-- > 0)
             {
-                MTG.Instance.MoveZone(library.Get(0), library, hand);
+                OID oid = library.Get(0);
+                if (oid != null)
+                    MTG.Instance.MoveZone(oid, library, hand);
             }
         }
 
@@ -33,14 +37,16 @@ namespace MTGLib
         {
             while (count-- > 0)
             {
-                MTG.Instance.MoveZone(library.Get(0), library, graveyard);
+                OID oid = library.Get(0);
+                if (oid != null)
+                    MTG.Instance.MoveZone(oid, library, graveyard);
             }
         }
 
         public void Discard(int count = 1)
         {
             if (count < 1) return;
-            Choice<OID> choice = new OIDChoice
+            OIDChoice choice = new OIDChoice
             {
                 Options = new List<OID>(),
                 Min = count,

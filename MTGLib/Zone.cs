@@ -34,7 +34,7 @@ namespace MTGLib
         public virtual void Add(T item, int index = 0)
         {
             if (Has(item))
-                throw new ArgumentException("OID is already in this zone");
+                throw new ArgumentException("Item is already in this zone");
             if (index == 0)
             {
                 _objects.AddFirst(item);
@@ -97,7 +97,10 @@ namespace MTGLib
 
         public virtual T Get(int index = 0)
         {
-            return GetNode(index).Value;
+            var node = GetNode(index);
+            if (node != null)
+                return GetNode(index).Value;
+            else return default;
         }
 
         public virtual bool Has(T item)
@@ -114,10 +117,7 @@ namespace MTGLib
         }
     }
 
-    public class Zone : BaseZone<OID>
-    {
-        
-    }
+    public class Zone : BaseZone<OID> { }
 
     public class Hand : Zone
     {

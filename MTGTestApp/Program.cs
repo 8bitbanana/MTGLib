@@ -25,14 +25,56 @@ namespace MTGTestApp
                 name = "Island",
                 cardTypes = new HashSet<MTGObject.CardType> { MTGObject.CardType.Land },
                 superTypes = new HashSet<MTGObject.SuperType> { MTGObject.SuperType.Basic },
-                subTypes = new HashSet<MTGObject.SubType> { MTGObject.SubType.Island }
+                subTypes = new HashSet<MTGObject.SubType> { MTGObject.SubType.Island },
+                activatedAbilities = new List<ActivatedAbility>
+                {
+                    new ManaAbility(
+                        new Action<OID>[] {
+                            (source) => {
+                                int controller = MTG.Instance.objects[source].attr.controller;
+                                MTG.Instance.players[controller].manaPool.AddMana(
+                                    ManaSymbol.Blue
+                                );
+                            }
+                        },
+                        new Action<OID>[] {
+                            (source) => {
+                                int controller = MTG.Instance.objects[source].attr.controller;
+                                MTG.Instance.players[controller].manaPool.RemoveMana(
+                                    ManaSymbol.Blue
+                                );
+                            }
+                        }
+                    )
+                }
             };
             var mountain = new MTGLib.MTGObject.BaseCardAttributes()
             {
                 name = "Mountain",
                 cardTypes = new HashSet<MTGObject.CardType> { MTGObject.CardType.Land },
                 superTypes = new HashSet<MTGObject.SuperType> { MTGObject.SuperType.Basic },
-                subTypes = new HashSet<MTGObject.SubType> { MTGObject.SubType.Mountain }
+                subTypes = new HashSet<MTGObject.SubType> { MTGObject.SubType.Mountain },
+                activatedAbilities = new List<ActivatedAbility>
+                {
+                    new ManaAbility(
+                        new Action<OID>[] {
+                            (source) => {
+                                int controller = MTG.Instance.objects[source].attr.controller;
+                                MTG.Instance.players[controller].manaPool.AddMana(
+                                    ManaSymbol.Red
+                                );
+                            }
+                        },
+                        new Action<OID>[] {
+                            (source) => {
+                                int controller = MTG.Instance.objects[source].attr.controller;
+                                MTG.Instance.players[controller].manaPool.RemoveMana(
+                                    ManaSymbol.Red
+                                );
+                            }
+                        }
+                    )
+                }
             };
 
             var crab = new MTGLib.MTGObject.BaseCardAttributes()
@@ -52,13 +94,12 @@ namespace MTGTestApp
             for (int i=0; i<30; i++)
             {
                 lib1.Add(ogre);
-                lib1.Add(crab);
-                lib2.Add(ogre);
+                lib1.Add(mountain);
                 lib2.Add(crab);
+                lib2.Add(island);
             }
 
             var mtg = new MTG(lib1, lib2);
-
             mtg.Start();
             mtg.GameLoop();
         }

@@ -18,6 +18,9 @@ namespace UnitTests
             OID cid2 = new OID();
             OID cid3 = new OID();
 
+            OID oid = zone.Get(0);
+            Assert.IsNull(oid);
+
             zone.Add(cid1);
             zone.Add(cid2);
             zone.Add(cid3);

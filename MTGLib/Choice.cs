@@ -146,7 +146,7 @@ namespace MTGLib
         public enum OptionType
         {
             CastSpell,
-            ActivatedAbility,
+            ActivateAbility,
             PassPriority,
             ManaAbility,
 
@@ -154,7 +154,7 @@ namespace MTGLib
             PlayLand,
             TurnFaceUp,
             ExileSuspendCard,
-            RetrieveCompanion,
+            RetrieveCompanion
 
             // Special actions defined in rules 116.2c-d are very rare.
             // I won't be implementing them until needed.
@@ -163,6 +163,8 @@ namespace MTGLib
 
         public OptionType type;
         public OID source;
+
+        public ActivatedAbility activatedAbility;
 
         public override string ToString()
         {
@@ -208,30 +210,43 @@ namespace MTGLib
                     continue;
 
                 // TODO - Also an oversimplification :) (for the card type check at least)
-                if (!cardtypes.Contains(MTGObject.CardType.Instant))
-                {
-                    if (!mtg.turn.ActivePlayerPriority)
-                        continue;
-                    if (!mtg.turn.phase.SorceryPhase)
-                        continue;
-                    if (mtg.theStack.Count > 0)
-                        continue;
-                }
+                if (!mtg.CanCastSorceries && !cardtypes.Contains(MTGObject.CardType.Instant))
+                    continue;
 
                 Options.Add(new PriorityOption
                 {
                     type = PriorityOption.OptionType.CastSpell,
-                    source = oid
+                    source = oid,
                 });
             }
 
             // 117.1b A player may activate an activated ability any time they have priority.
+            foreach (var kvp in mtg.objects)
+            {
+                OID oid = kvp.Key; MTGObject obj = kvp.Value;
+                if (MTG.Instance.battlefield.Has(oid))
+                {
+                    Console.Write("");
+                }
+                foreach (var ability in obj.attr.activatedAbilities)
+                {
+                    if (!(ability is ManaAbility) && ability.CanBeActivated(oid))
+                    {
+                        Options.Add(new PriorityOption
+                        {
+                            type = PriorityOption.OptionType.ActivateAbility,
+                            source = oid,
+                            activatedAbility = ability
+                        });
+                    }
+                }
+            }
 
             // 117.1c A player may take some special actions any time they have priority.A player may take other special actions during their main phase any time they have priority and the stack is empty.See rule 116, “Special Actions.”
             foreach(var oid in player.hand)
             {
                 var cardtypes = mtg.objects[oid].attr.cardTypes;
-                if (mtg.turn.phase.SorceryPhase && cardtypes.Contains(MTGObject.CardType.Land))
+                if (mtg.CanCastSorceries && cardtypes.Contains(MTGObject.CardType.Land))
                 {
                     // TODO - One land per turn. Need the events log and a land drop total system
                     Options.Add(new PriorityOption
@@ -243,6 +258,22 @@ namespace MTGLib
             }
 
             // 117.1d A player may activate a mana ability whenever they have priority, whenever they are casting a spell or activating an ability that requires a mana payment, or whenever a rule or effect asks for a mana payment(even in the middle of casting or resolving a spell or activating or resolving an ability).
+            foreach (var kvp in mtg.objects)
+            {
+                OID oid = kvp.Key; MTGObject obj = kvp.Value;
+                foreach (var ability in obj.attr.activatedAbilities)
+                {
+                    if (ability is ManaAbility && ability.CanBeActivated(oid))
+                    {
+                        Options.Add(new PriorityOption
+                        {
+                            type = PriorityOption.OptionType.ManaAbility,
+                            source = oid,
+                            activatedAbility = ability
+                        });
+                    }
+                }
+            }
         }
     }
 }

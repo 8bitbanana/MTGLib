@@ -8,10 +8,26 @@ namespace MTGLib
     public class TheStack : Zone
     {
 
-        public void PopAndResolve()
+        public void ResolveTop()
         {
-            var x = Pop();
-            x.Resolve();
+            MTG mtg = MTG.Instance;
+            OID oid = Get(0);
+            MTGObject obj = mtg.objects[oid];
+            obj.Resolve();
+
+            if (obj is AbilityObject)
+            {
+                mtg.DeleteObject(oid);
+            } else
+            {
+                if (obj.CanBePermanent)
+                {
+                    mtg.MoveZone(oid, this, mtg.battlefield);
+                } else
+                {
+                    mtg.MoveZone(oid, this, mtg.players[obj.owner].graveyard);
+                }
+            }
         }
 
         public void PPrint()

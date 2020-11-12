@@ -94,6 +94,12 @@ namespace MTGLib
         int noActionPassCount = 0;
         bool haveAllPlayersPassed { get { return noActionPassCount >= players.Count; } }
 
+        public MTG()
+            : this (
+                  new List<MTGObject.BaseCardAttributes>(),
+                  new List<MTGObject.BaseCardAttributes>()
+            ) { }
+
         public MTG(params List<MTGObject.BaseCardAttributes>[] libraries)
         {
             instance = this;
@@ -107,8 +113,7 @@ namespace MTGLib
                     var cardattr = i;
                     cardattr.owner = playerIndex;
                     MTGObject mtgObject = new MTGObject(cardattr);
-                    OID oid = new OID();
-                    objects.Add(oid, mtgObject);
+                    OID oid = CreateObject(mtgObject);
                     player.library.Add(oid);
                 }
                 
@@ -127,8 +132,6 @@ namespace MTGLib
                 // Stuff that triggers at start of step
                 Console.WriteLine("Start " + turn.phase.type.GetString());
                 Console.WriteLine("Active player - " + turn.playerTurnIndex);
-                Console.WriteLine();
-                theStack.PPrint();
                 Console.WriteLine();
                 turn.phase.StartCurrentPhase();
                 CalculateBoardState();
@@ -151,6 +154,8 @@ namespace MTGLib
                                 CalculateBoardState();
                                 SBALoop();
                                 CalculateBoardState();
+                                if (theStack.Count > 0)
+                                    theStack.PPrint();
                                 bool passed = ResolveCurrentPriority();
                                 if (passed) break;
                                 else
@@ -169,7 +174,7 @@ namespace MTGLib
                         if (theStack.Count > 0)
                         {
                             CalculateBoardState();
-                            theStack.PopAndResolve();
+                            theStack.ResolveTop();
                         }
                         else break;
                     }
@@ -197,12 +202,26 @@ namespace MTGLib
                 case PriorityOption.OptionType.PlayLand:
                     MoveZone(choice.FirstChoice.source, battlefield);
                     break;
+                case PriorityOption.OptionType.ActivateAbility:
+                    {
+                        OID source = choice.FirstChoice.source;
+                        OID ability = choice.FirstChoice.activatedAbility.GenerateAbility(source);
+                        MTG.instance.theStack.Push(ability);
+                        break;
+                    }
+                case PriorityOption.OptionType.ManaAbility:
+                    {
+                        OID source = choice.FirstChoice.source;
+                        OID ability = choice.FirstChoice.activatedAbility.GenerateAbility(source);
+                        MTG.instance.objects[ability].Resolve();
+                        MTG.instance.DeleteObject(ability);
+                        break;
+                    }
                 default:
                     throw new NotImplementedException();
             }
             return false;
         }
-
         public void PushChoice(Choice choice)
         {
             if (choice.Resolved)
@@ -248,8 +267,31 @@ namespace MTGLib
 
         public void MoveZone(OID oid, Zone oldZone, Zone newZone)
         {
+            if (newZone == battlefield)
+            {
+                // If an instant/sorcery would enter the battlefield, it remains in its previous zone instead.
+                if (!objects[oid].CanBePermanent)
+                {
+                    return;
+                }
+            }
+
             oldZone.Remove(oid);
             newZone.Push(oid);
+        }
+
+        public OID CreateObject(MTGObject obj)
+        {
+            OID oid = new OID();
+            objects.Add(oid, obj);
+            return oid;
+        }
+
+        public void DeleteObject(OID oid)
+        {
+            Zone zone = FindZoneFromOID(oid);
+            zone.Remove(oid);
+            objects.Remove(oid);
         }
 
         public Zone FindZoneFromOID(OID oid)
@@ -299,6 +341,20 @@ namespace MTGLib
         {
             get {
                 return _allModifications.AsReadOnly();
+            }
+        }
+
+        public bool CanCastSorceries
+        {
+            get
+            {
+                if (!turn.ActivePlayerPriority)
+                    return false;
+                if (theStack.Count > 0)
+                    return false;
+                if (!turn.phase.SorceryPhase)
+                    return false;
+                return true;
             }
         }
 

@@ -48,5 +48,25 @@ namespace UnitTests
             ));
             Assert.AreEqual(mana2 - mana1, new ManaCost(ManaSymbol.Green));
         }
+
+        [TestMethod]
+        public void TestManaPool()
+        {
+            var manapool = new ManaPool();
+            manapool.AddMana(ManaSymbol.Red);
+            Assert.AreEqual(manapool.Count, 1);
+            manapool.AddMana(ManaSymbol.Green, ManaSymbol.Green);
+            manapool.RemoveMana(ManaSymbol.Red, ManaSymbol.Green);
+            Assert.AreEqual(manapool.Count, 1);
+            foreach (var mana in manapool)
+            {
+                Assert.AreEqual(mana, ManaSymbol.Green);
+            }
+            manapool.Empty();
+            foreach (var mana in manapool)
+            {
+                Assert.Fail();
+            }
+        }
     }
 }
