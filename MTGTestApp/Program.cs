@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using MTGLib;
 
 namespace MTGTestApp
@@ -101,7 +102,18 @@ namespace MTGTestApp
 
             var mtg = new MTG(lib1, lib2);
             mtg.Start();
-            mtg.GameLoop();
+
+            Thread gameLoopThread = new Thread(mtg.GameLoop);
+            gameLoopThread.Start();
+
+            while (true)
+            {
+                mtg.ChoiceNewEvent.WaitOne();
+
+                Choice choice = mtg.CurrentUnresolvedChoice;
+                choice.ConsoleResolve();
+                mtg.ResolveChoice(choice);
+            }
         }
     }
 }

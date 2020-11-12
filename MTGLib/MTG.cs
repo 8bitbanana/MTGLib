@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
 
 namespace MTGLib
 {
@@ -222,12 +223,61 @@ namespace MTGLib
             }
             return false;
         }
+
+        public bool Headless = true;
+
+        public EventWaitHandle ChoiceNewEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
+             
+        public EventWaitHandle ChoiceResolvedEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
+
+        private Choice _unresolvedChoice;
+
+        public Choice CurrentUnresolvedChoice {
+            get
+            {
+                lock (_unresolvedChoice)
+                {
+                    return _unresolvedChoice;
+                }
+            }
+            private set
+            {
+                lock (_unresolvedChoice)
+                {
+                    _unresolvedChoice = value;
+                }
+            }
+        }
+
         public void PushChoice(Choice choice)
         {
             if (choice.Resolved)
                 throw new ArgumentException("This choice is already resolved.");
 
-            choice.ConsoleResolve();
+            if (!Headless)
+                choice.ConsoleResolve();
+            else
+            {
+                CurrentUnresolvedChoice = choice;
+                ChoiceNewEvent.Set();
+            }
+
+            // Spin until event is recieved and choice in resolved.
+            while (true)
+            {
+                if (CurrentUnresolvedChoice.Resolved)
+                    break;
+
+                ChoiceResolvedEvent.WaitOne();
+            }
+        }
+
+        public void ResolveChoice(Choice choice)
+        {
+            if (!choice.Resolved)
+                throw new ArgumentException("This choice is not resolved.");
+            CurrentUnresolvedChoice = choice;
+            ChoiceNewEvent.Set();
         }
 
         private void UpdateAllModifications()
