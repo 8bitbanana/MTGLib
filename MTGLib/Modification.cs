@@ -18,6 +18,8 @@ namespace MTGLib
         public enum Operation { Override, Add, Subtract }
         public Operation operation = Operation.Override;
 
+        public OID specificOID;
+
         public Func<MTGObject, bool> condition;
     }
 
@@ -25,8 +27,15 @@ namespace MTGLib
     {
         public T value;
 
-        public virtual T Modify(T original, MTGObject obj)
+        public virtual T Modify(T original, OID oid, MTGObject obj)
         {
+            if (specificOID != null)
+            {
+                if (oid != specificOID)
+                {
+                    return original;
+                }
+            }
             if (condition != null)
             {
                 if (obj == null)

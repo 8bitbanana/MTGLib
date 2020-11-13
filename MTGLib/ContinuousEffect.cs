@@ -51,6 +51,11 @@ namespace MTGLib
             if (!IsDurationDataValid())
                 throw new ArgumentException($"Duration data invalid for {duration}");
         }
+        public ContinuousEffect(Duration effectduration, DurationData data, Modification[] modifications)
+            : this (effectduration, data)
+        {
+            foreach (var mod in modifications) { AddModification(mod); }
+        }
 
         private bool IsDurationDataValid()
         {

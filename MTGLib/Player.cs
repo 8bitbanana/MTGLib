@@ -16,7 +16,7 @@ namespace MTGLib
 
         public ManaPool manaPool = new ManaPool();
 
-        public Dictionary<string, int> counters = new Dictionary<string, int>();
+        public CounterStore counters = new CounterStore();
 
         public Player()
         {
@@ -46,19 +46,29 @@ namespace MTGLib
         public void Discard(int count = 1)
         {
             if (count < 1) return;
-            OIDChoice choice = new OIDChoice
+            if (count < hand.Count)
             {
-                Options = new List<OID>(),
-                Min = count,
-                Max = count,
-                Title = $"Discard {count} card(s)."
-            };
-            choice.Options.AddRange(hand);
-            MTG.Instance.PushChoice(choice);
-            foreach(var card in choice.Choices)
+                OIDChoice choice = new OIDChoice
+                {
+                    Options = new List<OID>(),
+                    Min = count,
+                    Max = count,
+                    Title = $"Discard {count} card(s)."
+                };
+                choice.Options.AddRange(hand);
+                MTG.Instance.PushChoice(choice);
+                foreach (var card in choice.Choices)
+                {
+                    MTG.Instance.MoveZone(card, hand, graveyard);
+                }
+            } else
             {
-                MTG.Instance.MoveZone(card, hand, graveyard);
+                foreach (var card in new List<OID>(hand))
+                {
+                    MTG.Instance.MoveZone(card, hand, graveyard);
+                }
             }
+            
         }
     }
 }

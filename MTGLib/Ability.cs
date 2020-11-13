@@ -35,13 +35,13 @@ namespace MTGLib
 
         protected List<Action<OID>> reverseEffects = new List<Action<OID>>();
 
-        public ManaAbility(Func<OID, bool> condition, Action<OID>[] effects, Action<OID>[] reverseEffects)
-            : base(condition, effects)
+        public ManaAbility(Cost[] costs, Func<OID, bool> condition, Action<OID>[] effects, Action<OID>[] reverseEffects)
+            : base(costs, condition, effects)
         {
             this.reverseEffects.AddRange(reverseEffects);
         }
-        public ManaAbility(Action<OID>[] effects, Action<OID>[] reverseEffects)
-            : this(null, effects, reverseEffects) { }
+        public ManaAbility(Cost[] costs, Action<OID>[] effects, Action<OID>[] reverseEffects)
+            : this(costs, null, effects, reverseEffects) { }
 
         public OID GenerateReverseAbility(OID source)
         {
@@ -83,11 +83,16 @@ namespace MTGLib
             return BattlefieldCondition(oid) && ControllerCondition(oid);
         }
 
+        protected List<Cost> costs = new List<Cost>();
+
+        private List<int> paidCosts = new List<int>();
+
         protected List<Action<OID>> effects = new List<Action<OID>>();
         protected Func<OID, bool> condition;
 
-        public ActivatedAbility(Func<OID, bool> condition, params Action<OID>[] effects)
+        public ActivatedAbility(Cost[] costs, Func<OID, bool> condition, params Action<OID>[] effects)
         {
+            this.costs.AddRange(costs);
             this.condition = condition;
             this.effects.AddRange(effects);
             SetConditionIfNull();
@@ -99,12 +104,40 @@ namespace MTGLib
                 this.condition = ActivatedAbility.DefaultCondition;
         }
 
-        public ActivatedAbility(params Action<OID>[] effects)
-            : this(null, effects) { }
+        public ActivatedAbility(Cost[] costs, Action<OID>[] effects)
+            : this(costs, null, effects) { }
 
         public bool CanBeActivated(OID source)
         {
             return condition(source);
+        }
+
+        public bool PayCosts(OID source)
+        {
+            paidCosts.Clear();
+            for (int i=0; i<costs.Count; i++)
+            {
+                var cost = costs[i];
+                bool result = cost.Pay(source);
+                if (result)
+                {
+                    paidCosts.Add(i);
+                } else
+                {
+                    RepayPaidCosts(source);
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private void RepayPaidCosts(OID source)
+        {
+            foreach (int i in paidCosts)
+            {
+                var cost = costs[i];
+                cost.ReversePay(source);
+            }
         }
 
         public OID GenerateAbility(OID source)

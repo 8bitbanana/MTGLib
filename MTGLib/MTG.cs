@@ -15,8 +15,6 @@ namespace MTGLib
 
         public List<Player> players = new List<Player>();
 
-        int currentTurn = 0;
-
         public Dictionary<OID, MTGObject> objects = new Dictionary<OID, MTGObject>();
 
         public Battlefield battlefield = new Battlefield();
@@ -184,13 +182,19 @@ namespace MTGLib
                 Console.WriteLine();
                 CalculateBoardState();
                 turn.phase.EndCurrentPhase();
-                turn.IncPhase();
+                bool endturn = turn.IncPhase();
+                if (endturn)
+                {
+                    turn.IncTurn(players.Count);
+                    // Stuff at end of turn
+                }
             }
         }
 
         // Returns true if the player passed
         public bool ResolveCurrentPriority()
         {
+            ResetChoice:
             PriorityChoice choice = new PriorityChoice();
             choice.ConsoleResolve();
             switch (choice.FirstChoice.type)
@@ -198,24 +202,54 @@ namespace MTGLib
                 case PriorityOption.OptionType.PassPriority:
                     return true;
                 case PriorityOption.OptionType.CastSpell:
-                    MoveZone(choice.FirstChoice.source, theStack);
-                    break;
+                    {
+                        OID source = choice.FirstChoice.source;
+                        bool result = objects[source].PayCastingCosts();
+                        if (!result)
+                        {
+                            Console.WriteLine("Cost not paid, resetting choice");
+                            goto ResetChoice;
+                        }
+
+                        MoveZone(source, theStack);
+                        break;
+                    }
                 case PriorityOption.OptionType.PlayLand:
                     MoveZone(choice.FirstChoice.source, battlefield);
                     break;
                 case PriorityOption.OptionType.ActivateAbility:
                     {
                         OID source = choice.FirstChoice.source;
-                        OID ability = choice.FirstChoice.activatedAbility.GenerateAbility(source);
-                        MTG.instance.theStack.Push(ability);
+
+                        ActivatedAbility ability = choice.FirstChoice.activatedAbility;
+
+                        bool result = ability.PayCosts(source);
+                        if (!result)
+                        {
+                            Console.WriteLine("Cost not paid, resetting choice");
+                            goto ResetChoice;
+                        }
+                        OID abilityobj = choice.FirstChoice.activatedAbility.GenerateAbility(source);
+
+                        MTG.instance.theStack.Push(abilityobj);
                         break;
                     }
                 case PriorityOption.OptionType.ManaAbility:
                     {
                         OID source = choice.FirstChoice.source;
-                        OID ability = choice.FirstChoice.activatedAbility.GenerateAbility(source);
-                        MTG.instance.objects[ability].Resolve();
-                        MTG.instance.DeleteObject(ability);
+
+
+                        ManaAbility ability = choice.FirstChoice.activatedAbility as ManaAbility;
+                        bool result = ability.PayCosts(source);
+                        if (!result)
+                        {
+                            Console.WriteLine("Cost not paid, resetting choice");
+                            goto ResetChoice;
+                        }
+
+                        OID abilityObj = choice.FirstChoice.activatedAbility.GenerateAbility(source);
+                        MTG.instance.objects[abilityObj].Resolve();
+                        MTG.instance.DeleteObject(abilityObj);
                         break;
                     }
                 default:
@@ -232,17 +266,19 @@ namespace MTGLib
 
         private Choice _unresolvedChoice;
 
+        private object _unresolvedChoiceLock = new object();
+
         public Choice CurrentUnresolvedChoice {
             get
             {
-                lock (_unresolvedChoice)
+                lock (_unresolvedChoiceLock)
                 {
                     return _unresolvedChoice;
                 }
             }
             private set
             {
-                lock (_unresolvedChoice)
+                lock (_unresolvedChoiceLock)
                 {
                     _unresolvedChoice = value;
                 }
@@ -277,7 +313,7 @@ namespace MTGLib
             if (!choice.Resolved)
                 throw new ArgumentException("This choice is not resolved.");
             CurrentUnresolvedChoice = choice;
-            ChoiceNewEvent.Set();
+            ChoiceResolvedEvent.Set();
         }
 
         private void UpdateAllModifications()
@@ -340,7 +376,8 @@ namespace MTGLib
         public void DeleteObject(OID oid)
         {
             Zone zone = FindZoneFromOID(oid);
-            zone.Remove(oid);
+            if (zone != null)
+                zone.Remove(oid);
             objects.Remove(oid);
         }
 

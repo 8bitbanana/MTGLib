@@ -45,6 +45,8 @@ namespace MTGLib
             var mtg = MTG.Instance;
             switch (type)
             {
+                // "At the beginning of" effects
+
                 case PhaseType.Untap:
                     // Phasing happens
 
@@ -116,7 +118,12 @@ namespace MTGLib
         public void EndCurrentPhase()
         {
             // Empty mana pools
-            // Poss other stuff, to check
+            foreach (var player in MTG.Instance.players)
+            {
+                player.manaPool.Empty();
+            }
+
+            // "Until the end of" effects end
         }
 
         public bool SorceryPhase { get

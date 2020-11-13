@@ -21,6 +21,68 @@ namespace MTGTestApp
                 subTypes = new HashSet<MTGLib.MTGObject.SubType> { MTGLib.MTGObject.SubType.Ogre, MTGLib.MTGObject.SubType.Warrior }
             };
 
+            var knight = new MTGObject.BaseCardAttributes()
+            {
+                name = "Fireborn Knight",
+                manaCost = new ManaCost(
+                    ManaSymbol.HybridBoros,
+                    ManaSymbol.HybridBoros,
+                    ManaSymbol.HybridBoros,
+                    ManaSymbol.HybridBoros
+                ),
+                power = 2,
+                toughness = 3,
+                cardTypes = new HashSet<MTGObject.CardType> { MTGObject.CardType.Creature },
+                subTypes = new HashSet<MTGObject.SubType> { MTGObject.SubType.Human, MTGObject.SubType.Knight },
+                // double strike goes here
+                activatedAbilities = new List<ActivatedAbility>
+                {
+                    new ActivatedAbility(
+                        new Cost[]
+                        {
+                            new CostPayMana(new ManaCost(
+                                ManaSymbol.HybridBoros,
+                                ManaSymbol.HybridBoros,
+                                ManaSymbol.HybridBoros,
+                                ManaSymbol.HybridBoros
+                            ))
+                        },
+                        new Action<OID>[]
+                        {
+                            (source) =>
+                            {
+                                MTG mtg_ = MTG.Instance;
+
+                                mtg_.continuousEffects.Add(
+                                    new ContinuousEffect(
+                                        ContinuousEffect.Duration.EndOfTurn,
+                                        new ContinuousEffect.DurationData
+                                        {
+                                            turn = mtg_.turn.turnCount
+                                        },
+                                        new Modification[]
+                                        {
+                                            new PowerMod
+                                            {
+                                                value = 1,
+                                                operation = Modification.Operation.Add,
+                                                specificOID = source
+                                            },
+                                            new ToughnessMod
+                                            {
+                                                value = 1,
+                                                operation = Modification.Operation.Add,
+                                                specificOID = source
+                                            }
+                                        }
+                                    )
+                                );
+                            }
+                        }
+                    )
+                }
+            };
+
             var island = new MTGLib.MTGObject.BaseCardAttributes()
             {
                 name = "Island",
@@ -30,6 +92,10 @@ namespace MTGTestApp
                 activatedAbilities = new List<ActivatedAbility>
                 {
                     new ManaAbility(
+                        new Cost[]
+                        {
+                            new CostTapSelf()
+                        },
                         new Action<OID>[] {
                             (source) => {
                                 int controller = MTG.Instance.objects[source].attr.controller;
@@ -58,6 +124,10 @@ namespace MTGTestApp
                 activatedAbilities = new List<ActivatedAbility>
                 {
                     new ManaAbility(
+                        new Cost[]
+                        {
+                            new CostTapSelf()
+                        },
                         new Action<OID>[] {
                             (source) => {
                                 int controller = MTG.Instance.objects[source].attr.controller;

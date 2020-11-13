@@ -105,6 +105,7 @@ namespace MTGLib
             public List<StaticAbility> staticAbilities;
             public List<ResolutionAbility> spellAbilities;
             public List<ActivatedAbility> activatedAbilities;
+            public List<Cost> additionalCastingCosts;
         }
 
         public struct MTGObjectAttributes
@@ -130,6 +131,21 @@ namespace MTGLib
                     color = Color.Generic;
                 }
 
+                if (manaCost != null)
+                {
+                    castingCosts = new List<Cost>
+                    {
+                        new CostPayMana(manaCost)
+                    };
+                    if (attr.additionalCastingCosts != null)
+                    {
+                        foreach (var cost in attr.additionalCastingCosts)
+                        {
+                            castingCosts.Add(cost);
+                        }
+                    }
+                }
+
                 Init();
             }
 
@@ -149,6 +165,7 @@ namespace MTGLib
                     spellAbilities = new List<ResolutionAbility>();
                 if (activatedAbilities == null)
                     activatedAbilities = new List<ActivatedAbility>();
+                // Casting costs can stay null
             }
 
             public string name;
@@ -163,6 +180,7 @@ namespace MTGLib
             public List<StaticAbility> staticAbilities;
             public List<ResolutionAbility> spellAbilities;
             public List<ActivatedAbility> activatedAbilities;
+            public List<Cost> castingCosts;
         }
 
         public struct PermanentStatus
@@ -198,6 +216,8 @@ namespace MTGLib
             Ogre,
             Warrior,
             Crab,
+            Human,
+            Knight,
             Plains,
             Mountain,
             Swamp,
@@ -235,6 +255,38 @@ namespace MTGLib
         {
             baseCardAttributes = baseAttr;
             ResetAttributes();
+        }
+
+        private List<int> paidCosts = new List<int>();
+
+        public bool PayCastingCosts()
+        {
+            OID myOid = FindMyOID();
+            paidCosts.Clear();
+            for (int i = 0; i < attr.castingCosts.Count; i++)
+            {
+                var cost = attr.castingCosts[i];
+                bool result = cost.Pay(myOid);
+                if (result)
+                {
+                    paidCosts.Add(i);
+                }
+                else
+                {
+                    RepayPaidCosts();
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private void RepayPaidCosts()
+        {
+            foreach (int i in paidCosts)
+            {
+                var cost = attr.castingCosts[i];
+                cost.ReversePay(FindMyOID());
+            }
         }
 
         public virtual void Resolve()
@@ -289,7 +341,9 @@ namespace MTGLib
         public void CalculateAttributes()
         {
             ResetAttributes();
-            
+
+            OID myOid = FindMyOID();
+
             // TODO - Make sure effects are applied in timestamp order
             // TODO - How the hell does dependency work
             var allMods = MTG.Instance.AllModifications;
@@ -305,7 +359,7 @@ namespace MTGLib
                 var mod = allMods[indexes[i]];
                 if (mod is ControllerMod cast)
                 {
-                    attributes.controller = cast.Modify(attributes.controller, this);
+                    attributes.controller = cast.Modify(attributes.controller, myOid, this);
                     indexes.RemoveAt(i);
                     continue;
                 }
@@ -319,19 +373,19 @@ namespace MTGLib
                 var mod = allMods[indexes[i]];
                 if (mod is CardTypeMod cast)
                 {
-                    attributes.cardTypes = cast.Modify(attributes.cardTypes, this);
+                    attributes.cardTypes = cast.Modify(attributes.cardTypes, myOid, this);
                     indexes.RemoveAt(i);
                     continue;
                 }
                 if (mod is SubTypeMod cast1)
                 {
-                    attributes.subTypes = cast1.Modify(attributes.subTypes, this);
+                    attributes.subTypes = cast1.Modify(attributes.subTypes, myOid, this);
                     indexes.RemoveAt(i);
                     continue;
                 }
                 if (mod is SuperTypeMod cast2)
                 {
-                    attributes.superTypes = cast2.Modify(attributes.superTypes, this);
+                    attributes.superTypes = cast2.Modify(attributes.superTypes, myOid, this);
                     indexes.RemoveAt(i);
                     continue;
                 }
@@ -343,7 +397,7 @@ namespace MTGLib
                 var mod = allMods[indexes[i]];
                 if (mod is ColorMod cast)
                 {
-                    attributes.color = cast.Modify(attributes.color, this);
+                    attributes.color = cast.Modify(attributes.color, myOid, this);
                     indexes.RemoveAt(i);
                     continue;
                 }
@@ -362,13 +416,13 @@ namespace MTGLib
                     continue;
                 if (mod is PowerMod cast)
                 {
-                    attributes.power = cast.Modify(attributes.power, this);
+                    attributes.power = cast.Modify(attributes.power, myOid, this);
                     indexes.RemoveAt(i);
                     continue;
                 }
                 if (mod is ToughnessMod cast2)
                 {
-                    attributes.toughness = cast2.Modify(attributes.toughness, this);
+                    attributes.toughness = cast2.Modify(attributes.toughness, myOid, this);
                     indexes.RemoveAt(i);
                     continue;
                 }
@@ -381,23 +435,30 @@ namespace MTGLib
                     continue;
                 if (mod is PowerMod cast)
                 {
-                    attributes.power = cast.Modify(attributes.power, this);
+                    attributes.power = cast.Modify(attributes.power, myOid, this);
                     indexes.RemoveAt(i);
                     continue;
                 }
                 if (mod is ToughnessMod cast2)
                 {
-                    attributes.toughness = cast2.Modify(attributes.toughness, this);
+                    attributes.toughness = cast2.Modify(attributes.toughness, myOid, this);
                     indexes.RemoveAt(i);
                     continue;
                 }
             }
         }
 
-        public Color identity { get
+        public virtual Color identity { get
             {
                 return attributes.color;
             } 
+        }
+        public virtual int cmc { get
+            {
+                if (attr.manaCost != null)
+                    return attr.manaCost.cmc;
+                else return 0;
+            }
         }
     }
 }

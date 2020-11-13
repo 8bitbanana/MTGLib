@@ -58,6 +58,40 @@ namespace MTGLib
             }
         }
 
+        public static Color[] GetBasicColors()
+        {
+            return new Color[5]
+            {
+                Color.White,
+                Color.Blue,
+                Color.Black,
+                Color.Red,
+                Color.Green
+            };
+        }
+
+        public static int GetColorCount(Color color)
+        {
+            int count = 0;
+            foreach (var basic in GetBasicColors())
+                if (color.HasColor(basic)) count++;
+            return count;
+        }
+
+        public virtual bool CanThisPayForMe(ManaSymbol manaBeingSpent)
+        {
+            int colorCount = GetColorCount(color);
+            if (colorCount == 0)
+                return true;
+            else if (colorCount == 1)
+            {
+                return color.HasColor(manaBeingSpent.color);
+            } else
+            {
+                throw new ArgumentException("The ManaSymbol being spent should only have one color");
+            }
+        }
+
         public override string ToString()
         {
             return "{" + GetColorSymbol(color) + "}";
@@ -99,6 +133,18 @@ namespace MTGLib
         public static readonly ManaSymbol One = new ManaSymbol(Color.Generic);
         public static readonly ManaSymbol Generic = new ManaSymbol(Color.Generic);
 
+        public static readonly ManaSymbol HybridAzorius = new ManaSymbol(Color.Azorius);
+        public static readonly ManaSymbol HybridDimir = new ManaSymbol(Color.Dimir);
+        public static readonly ManaSymbol HybridRakdos = new ManaSymbol(Color.Rakdos);
+        public static readonly ManaSymbol HybridGruul = new ManaSymbol(Color.Gruul);
+        public static readonly ManaSymbol HybridSelesnya = new ManaSymbol(Color.Selesnya);
+
+        public static readonly ManaSymbol HybridOrzhov = new ManaSymbol(Color.Orzhov);
+        public static readonly ManaSymbol HybridIzzet = new ManaSymbol(Color.Izzet);
+        public static readonly ManaSymbol HybridGolgari = new ManaSymbol(Color.Golgari);
+        public static readonly ManaSymbol HybridBoros = new ManaSymbol(Color.Boros);
+        public static readonly ManaSymbol HybridSimic = new ManaSymbol(Color.Simic);
+
         public bool IsColored { get { return color != Color.Generic; } }
     }
 
@@ -110,7 +156,21 @@ namespace MTGLib
 
         public void AddMana(params ManaSymbol[] mana)
         {
-            manaSymbols.AddRange(mana);
+            foreach (var singlemana in mana)
+                AddMana(singlemana);
+        }
+
+        public void AddMana(ManaSymbol mana)
+        {
+            if (ManaSymbol.GetColorCount(mana.color) > 1)
+                throw new ArgumentException("You can only add 0-1 color mana to your mana pool");
+            manaSymbols.Add(mana);
+        }
+
+        public void AddMana(ManaCost manaCost)
+        {
+            foreach (var mana in manaCost)
+                AddMana(mana);
         }
 
         public void RemoveMana(params ManaSymbol[] mana)
@@ -141,8 +201,7 @@ namespace MTGLib
                 List<ManaSymbol> possManaSymbols = new List<ManaSymbol>();
                 foreach (var mana in currentMana) 
                 {
-                    // TODO - Possible oversimplification?
-                    if ((mana.color & manaToPay.color) != Color.Generic)
+                    if (manaToPay.CanThisPayForMe(mana))
                     {
                         possManaSymbols.Add(mana);
                     }
