@@ -193,6 +193,7 @@ namespace MTGTestApp
 
                 if (!choice.Resolved)
                     choice.ConsoleResolve();
+
                 mtg.ResolveChoice(choice);
             }
         }

@@ -298,10 +298,12 @@ namespace MTGLib
                 ChoiceNewEvent.Set();
             }
 
-            // Spin until event is recieved and choice in resolved.
+            // Spin until event is recieved and cancelled/resolved
             while (true)
             {
                 if (CurrentUnresolvedChoice.Resolved)
+                    break;
+                if (CurrentUnresolvedChoice.Cancelled)
                     break;
 
                 ChoiceResolvedEvent.WaitOne();
@@ -310,7 +312,7 @@ namespace MTGLib
 
         public void ResolveChoice(Choice choice)
         {
-            if (!choice.Resolved)
+            if (!choice.Resolved )
                 throw new ArgumentException("This choice is not resolved.");
             CurrentUnresolvedChoice = choice;
             ChoiceResolvedEvent.Set();

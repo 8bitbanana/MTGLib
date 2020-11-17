@@ -8,6 +8,8 @@ namespace MTGLib
     {
         public bool Resolved { get; protected set; } = false;
 
+        public bool Cancelled { get; protected set; } = false;
+
         public abstract void ConsoleResolve();
 
         protected static string Prompt(string prompt)
@@ -24,6 +26,8 @@ namespace MTGLib
         public int Max = 1;
 
         public string Title = "Make a choice";
+
+        public bool Cancellable = false;
 
         public List<T> Choices { get; protected set; }
 
@@ -60,6 +64,7 @@ namespace MTGLib
                 currentOptions.AddRange(Options);
 
                 var finished = false;
+                var cancelled = false;
 
                 // Making choices loop
                 while (!finished)
@@ -67,8 +72,13 @@ namespace MTGLib
                     Console.WriteLine(Title);
 
                     if (currentChoices.Count >= Min)
-                        Console.WriteLine("[n] - Stop choosing.");
+                        Console.WriteLine("[N] - Stop choosing.");
+
+                    if (Cancellable)
+                        Console.WriteLine("[C] - Cancel choice.");
+
                     int index = 0;
+
                     foreach (var option in currentOptions)
                     {
                         Console.WriteLine($"[{index}] - {OptionString(option)}");
@@ -80,6 +90,11 @@ namespace MTGLib
                     {
                         // User quitting, stop making choices
                         finished = true;
+                        break;
+                    }
+                    if (Cancellable && input.ToLower() == "c")
+                    {
+                        cancelled = true;
                         break;
                     }
 
@@ -106,6 +121,12 @@ namespace MTGLib
                     }
                 }
 
+                if (cancelled)
+                {
+                    Cancel();
+                    break;
+                }
+
                 if (Resolve(currentChoices))
                     break;
                 else
@@ -114,8 +135,20 @@ namespace MTGLib
             
         }
 
+        public void Cancel()
+        {
+            if (Resolved)
+                throw new InvalidOperationException("Cannot cancel a resolved choice.");
+            if (!Cancellable)
+                throw new InvalidOperationException("This choice is not cancellable.");
+            Cancelled = true;
+            Resolved = true;
+        }
+
         public bool Resolve(List<T> choices)
         {
+            if (Resolved)
+                throw new InvalidOperationException("This choice is already resolved.");
             if (Verify(choices))
             {
                 Resolved = true;
@@ -130,16 +163,16 @@ namespace MTGLib
 
     public class ManaChoice : Choice<ManaSymbol>
     {
-        protected override string OptionString(ManaSymbol option)
-        {
-            if (option == null)
-            {
-                return "Cancel";
-            } else
-            {
-                return option.ToString();
-            }
-        }
+        //protected override string OptionString(ManaSymbol option)
+        //{
+        //    if (option == null)
+        //    {
+        //        return "Cancel";
+        //    } else
+        //    {
+        //        return option.ToString();
+        //    }
+        //}
     }
     public class OIDChoice : Choice<OID>
     {
