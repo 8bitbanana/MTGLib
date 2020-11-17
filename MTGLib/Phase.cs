@@ -50,11 +50,12 @@ namespace MTGLib
                 case PhaseType.Untap:
                     // Phasing happens
 
-                    // All permanents untap
+                    // Active player's permanents untap
                     foreach (OID oid in mtg.battlefield)
                     {
                         var mtgobj = mtg.objects[oid];
-                        mtgobj.permanentStatus.tapped = false;
+                        if (mtgobj.attr.controller == mtg.turn.playerTurnIndex)
+                            mtgobj.permanentStatus.tapped = false;
                     }
 
                     // No priority

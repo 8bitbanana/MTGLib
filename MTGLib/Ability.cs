@@ -109,7 +109,18 @@ namespace MTGLib
 
         public bool CanBeActivated(OID source)
         {
-            return condition(source);
+            if (!condition(source)) return false;
+            if (!CanPayCosts(source)) return false;
+            return true;
+        }
+
+        public bool CanPayCosts(OID source)
+        {
+            foreach (var cost in costs)
+            {
+                if (!cost.CanPay(source)) return false;
+            }
+            return true;
         }
 
         public bool PayCosts(OID source)

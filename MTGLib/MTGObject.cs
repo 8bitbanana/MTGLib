@@ -259,6 +259,16 @@ namespace MTGLib
 
         private List<int> paidCosts = new List<int>();
 
+        public bool CanPayCosts()
+        {
+            OID myOID = FindMyOID();
+            foreach(var cost in attr.castingCosts)
+            {
+                if (!cost.CanPay(myOID)) return false;
+            }
+            return true;
+        }
+
         public bool PayCastingCosts()
         {
             OID myOid = FindMyOID();
@@ -282,10 +292,11 @@ namespace MTGLib
 
         private void RepayPaidCosts()
         {
+            var myOid = FindMyOID();
             foreach (int i in paidCosts)
             {
                 var cost = attr.castingCosts[i];
-                cost.ReversePay(FindMyOID());
+                cost.ReversePay(myOid);
             }
         }
 

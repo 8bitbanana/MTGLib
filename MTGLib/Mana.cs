@@ -199,6 +199,7 @@ namespace MTGLib
             foreach (var manaToPay in cost)
             {
                 List<ManaSymbol> possManaSymbols = new List<ManaSymbol>();
+                possManaSymbols.Add(null);
                 foreach (var mana in currentMana) 
                 {
                     if (manaToPay.CanThisPayForMe(mana))
@@ -212,13 +213,15 @@ namespace MTGLib
                     return false;
                 }
 
-                var choice = new Choice<ManaSymbol>()
+                var choice = new ManaChoice()
                 {
                     Title = $"Choose which mana to use to pay for {manaToPay}",
                     Min = 1, Max = 1,
                     Options = possManaSymbols
                 };
                 MTG.Instance.PushChoice(choice);
+                if (choice.FirstChoice == null)
+                    return false;
                 currentMana.Remove(choice.FirstChoice);
             }
             manaSymbols = currentMana;

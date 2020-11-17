@@ -181,7 +181,18 @@ namespace MTGTestApp
                 mtg.ChoiceNewEvent.WaitOne();
 
                 Choice choice = mtg.CurrentUnresolvedChoice;
-                choice.ConsoleResolve();
+                
+                if (choice is PriorityChoice cast)
+                {
+                    if (cast.Options.Count == 1)
+                    {
+                        Console.WriteLine("Single choice - autoresolving.");
+                        cast.Resolve(new List<PriorityOption>(cast.Options));
+                    }
+                }
+
+                if (!choice.Resolved)
+                    choice.ConsoleResolve();
                 mtg.ResolveChoice(choice);
             }
         }

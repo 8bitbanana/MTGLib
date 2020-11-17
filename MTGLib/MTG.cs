@@ -194,9 +194,9 @@ namespace MTGLib
         // Returns true if the player passed
         public bool ResolveCurrentPriority()
         {
-            ResetChoice:
+        ResetChoice:
             PriorityChoice choice = new PriorityChoice();
-            choice.ConsoleResolve();
+            PushChoice(choice);
             switch (choice.FirstChoice.type)
             {
                 case PriorityOption.OptionType.PassPriority:

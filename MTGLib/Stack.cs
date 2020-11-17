@@ -37,12 +37,13 @@ namespace MTGLib
                 Console.WriteLine(" == Stack ==");
                 foreach (var x in this)
                 {
-                    Console.WriteLine(x.ToString());
+                    Console.WriteLine(MTG.Instance.objects[x].ToString());
                 }
+                Console.WriteLine(" ==== ");
             } else
             {
                 Console.WriteLine("Stack is empty");
             }
-        }
+        }   
     }
 }

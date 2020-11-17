@@ -127,6 +127,20 @@ namespace MTGLib
             return Resolved;
         }
     }
+
+    public class ManaChoice : Choice<ManaSymbol>
+    {
+        protected override string OptionString(ManaSymbol option)
+        {
+            if (option == null)
+            {
+                return "Cancel";
+            } else
+            {
+                return option.ToString();
+            }
+        }
+    }
     public class OIDChoice : Choice<OID>
     {
         protected override string OptionString(OID option)
@@ -211,6 +225,9 @@ namespace MTGLib
 
                 // TODO - Also an oversimplification :) (for the card type check at least)
                 if (!mtg.CanCastSorceries && !cardtypes.Contains(MTGObject.CardType.Instant))
+                    continue;
+
+                if (!mtg.objects[oid].CanPayCosts())
                     continue;
 
                 Options.Add(new PriorityOption
