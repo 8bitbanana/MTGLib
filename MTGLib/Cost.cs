@@ -57,6 +57,7 @@ namespace MTGLib
 
         protected override bool PayAction(OID source)
         {
+            Console.WriteLine($"Attempting to pay for {manaCost}");
             return SourcePlayer(source).manaPool.PayFor(manaCost);
         }
 

@@ -161,8 +161,71 @@ namespace MTGLib
         }
     }
 
-    public class ManaChoice : Choice<ManaSymbol>
+    public struct ManaChoiceOption
     {
+        public enum OptionType
+        {
+            UseMana,
+            ActivateManaAbility
+        }
+
+        public OptionType type;
+        public OID manaAbilitySource;
+        public ManaAbility manaAbility;
+        public ManaSymbol manaSymbol;
+    }
+
+    public class ManaChoice : Choice<ManaChoiceOption>
+    {
+        protected override string OptionString(ManaChoiceOption option)
+        {
+            switch (option.type)
+            {
+                case ManaChoiceOption.OptionType.UseMana:
+                    return $"Use {option.manaSymbol}";
+                case ManaChoiceOption.OptionType.ActivateManaAbility:
+                    return $"Activate ability on {MTG.Instance.objects[option.manaAbilitySource].ToString()}";
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        public ManaChoice(List<ManaSymbol> manaSymbols, ManaSymbol manaToPay, int playerIndex)
+        {
+            Title = $"Choose which mana to use to pay for {manaToPay}";
+            Min = 1; Max = 1;
+            Options = new List<ManaChoiceOption>();
+            Cancellable = true;
+
+            foreach (var mana in manaSymbols)
+            {
+                Options.Add(new ManaChoiceOption
+                {
+                    type = ManaChoiceOption.OptionType.UseMana,
+                    manaSymbol = mana
+                });
+            }
+
+            foreach (var kvp in MTG.Instance.objects)
+            {
+                OID oid = kvp.Key; MTGObject obj = kvp.Value;
+                if (obj.attr.controller != playerIndex)
+                    continue;
+                foreach (var ability in obj.attr.activatedAbilities)
+                {
+                    if (ability is ManaAbility && ability.CanBeActivated(oid))
+                    {
+                        Options.Add(new ManaChoiceOption
+                        {
+                            type = ManaChoiceOption.OptionType.ActivateManaAbility,
+                            manaAbilitySource = oid,
+                            manaAbility = ability as ManaAbility
+                        });
+                    }
+                }
+            }
+        }
+
         //protected override string OptionString(ManaSymbol option)
         //{
         //    if (option == null)
@@ -174,6 +237,7 @@ namespace MTGLib
         //    }
         //}
     }
+
     public class OIDChoice : Choice<OID>
     {
         protected override string OptionString(OID option)
@@ -274,10 +338,8 @@ namespace MTGLib
             foreach (var kvp in mtg.objects)
             {
                 OID oid = kvp.Key; MTGObject obj = kvp.Value;
-                if (MTG.Instance.battlefield.Has(oid))
-                {
-                    Console.Write("");
-                }
+                if (obj.attr.controller != mtg.turn.playerPriorityIndex)
+                    continue;
                 foreach (var ability in obj.attr.activatedAbilities)
                 {
                     if (!(ability is ManaAbility) && ability.CanBeActivated(oid))
@@ -311,6 +373,8 @@ namespace MTGLib
             foreach (var kvp in mtg.objects)
             {
                 OID oid = kvp.Key; MTGObject obj = kvp.Value;
+                if (obj.attr.controller != mtg.turn.playerPriorityIndex)
+                    continue;
                 foreach (var ability in obj.attr.activatedAbilities)
                 {
                     if (ability is ManaAbility && ability.CanBeActivated(oid))

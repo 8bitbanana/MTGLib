@@ -160,14 +160,57 @@ namespace MTGTestApp
                 subTypes = new HashSet<MTGObject.SubType> { MTGLib.MTGObject.SubType.Crab }
             };
 
+            var izzetSignet = new MTGObject.BaseCardAttributes()
+            {
+                name = "Izzet Signet",
+                manaCost = new ManaCost(2),
+                cardTypes = new HashSet<MTGObject.CardType> { MTGObject.CardType.Artifact },
+                activatedAbilities = new List<ActivatedAbility>
+                {
+                    new ManaAbility(
+                        new Cost[]
+                        {
+                            new CostTapSelf(),
+                            new CostPayMana(new ManaCost(1))
+                        },
+                        new Action<OID>[]
+                        {
+                            (source) =>
+                            {
+                                int controller = MTG.Instance.objects[source].attr.controller;
+                                MTG.Instance.players[controller].manaPool.AddMana(
+                                    ManaSymbol.Red, ManaSymbol.Blue
+                                );
+                            }
+                        },
+                        new Action<OID>[]
+                        {
+                            (source) =>
+                            {
+                                int controller = MTG.Instance.objects[source].attr.controller;
+                                MTG.Instance.players[controller].manaPool.RemoveMana(
+                                    ManaSymbol.Red, ManaSymbol.Blue
+                                );
+                            }
+                        }
+                    )
+                }
+            };
+
             var lib1 = new List<MTGLib.MTGObject.BaseCardAttributes>();
             var lib2 = new List<MTGLib.MTGObject.BaseCardAttributes>();
-            for (int i=0; i<30; i++)
+            for (int i=0; i<26; i++)
+            {
+                lib1.Add(mountain);
+                lib2.Add(island);
+            }
+
+            for (int i=0; i<17; i++)
             {
                 lib1.Add(ogre);
-                lib1.Add(mountain);
+                lib1.Add(izzetSignet);
                 lib2.Add(crab);
-                lib2.Add(island);
+                lib2.Add(izzetSignet);
             }
 
             var mtg = new MTG(lib1, lib2);

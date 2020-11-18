@@ -152,19 +152,31 @@ namespace MTGLib
     {
         List<ManaSymbol> manaSymbols = new List<ManaSymbol>();
 
-        public ManaPool() { }
+        /* Used to determine what mana has been added from the mana abilities
+         while costs are being paid.
+         */
+        List<ManaSymbol> tempManaSymbols = new List<ManaSymbol>();
 
-        public void AddMana(params ManaSymbol[] mana)
-        {
-            foreach (var singlemana in mana)
-                AddMana(singlemana);
-        }
+        public ManaPool() { }
 
         public void AddMana(ManaSymbol mana)
         {
             if (ManaSymbol.GetColorCount(mana.color) > 1)
                 throw new ArgumentException("You can only add 0-1 color mana to your mana pool");
             manaSymbols.Add(mana);
+            tempManaSymbols.Add(mana);
+        }
+
+        public void RemoveMana(ManaSymbol mana)
+        {
+            manaSymbols.Remove(mana);
+            tempManaSymbols.Remove(mana);
+        }
+
+        public void AddMana(params ManaSymbol[] mana)
+        {
+            foreach (var singlemana in mana)
+                AddMana(singlemana);
         }
 
         public void AddMana(ManaCost manaCost)
@@ -177,7 +189,7 @@ namespace MTGLib
         {
             foreach (var manaSymbol in mana)
             {
-                manaSymbols.Remove(manaSymbol);
+                RemoveMana(manaSymbol);
             }
         }
 
@@ -193,38 +205,92 @@ namespace MTGLib
             manaSymbols.Clear();
         }
 
+        private int GetMyOwnerIndex()
+        {
+            var index = 0;
+            foreach (var player in MTG.Instance.players)
+            {
+                if (player.manaPool == this)
+                    return index;
+                index++;
+            }
+            throw new InvalidOperationException("Manapool was unable to find it's owner.");
+        }
+
         public bool PayFor(ManaCost cost)
         {
-            var currentMana = new List<ManaSymbol>(manaSymbols);
+            tempManaSymbols = new List<ManaSymbol>(manaSymbols);
+
+            // Track each activated mana ability, so they can be reversed if needed
+            var activatedManaAbilities = new List<Tuple<ManaAbility, OID>>();
+
+            // Quick little function to reverse any activated mana abilities if
+            // this cost is cancelled.
+            void reverseManaAbilities()
+            {
+                foreach (var x in activatedManaAbilities)
+                {
+                    var ability = x.Item1;
+                    var source = x.Item2;
+                    var abilityOid = ability.GenerateReverseAbility(source);
+                    ability.RepayPaidCosts(source);
+                    MTG.Instance.objects[abilityOid].Resolve();
+                    MTG.Instance.DeleteObject(abilityOid);
+                }
+            }
+
             foreach (var manaToPay in cost)
             {
-                List<ManaSymbol> possManaSymbols = new List<ManaSymbol>();
-                foreach (var mana in currentMana) 
+                bool paid = false;
+                // Loop until mana is paid
+                while (!paid)
                 {
-                    if (manaToPay.CanThisPayForMe(mana))
+                    List<ManaSymbol> possManaSymbols = new List<ManaSymbol>();
+                    foreach (var mana in tempManaSymbols)
                     {
-                        possManaSymbols.Add(mana);
+                        if (manaToPay.CanThisPayForMe(mana))
+                        {
+                            possManaSymbols.Add(mana);
+                        }
+                    }
+
+                    var choice = new ManaChoice(possManaSymbols, manaToPay, GetMyOwnerIndex());
+
+                    MTG.Instance.PushChoice(choice);
+                    if (choice.Cancelled)
+                    {
+                        reverseManaAbilities();
+                        return false;
+                    }
+
+                    var chosen = choice.FirstChoice;
+
+                    switch (chosen.type)
+                    {
+                        case (ManaChoiceOption.OptionType.UseMana):
+                            tempManaSymbols.Remove(choice.FirstChoice.manaSymbol);
+                            paid = true;
+                            break;
+                        case (ManaChoiceOption.OptionType.ActivateManaAbility):
+                            bool result = chosen.manaAbility.PayCosts(chosen.manaAbilitySource);
+                            if (result)
+                            {
+                                // Use lastAddedManaSymbols to track the mana this
+                                // ability is adding.
+                                OID abilityObj = chosen.manaAbility.GenerateAbility(chosen.manaAbilitySource);
+                                MTG.Instance.objects[abilityObj].Resolve();
+                                MTG.Instance.DeleteObject(abilityObj);
+                                activatedManaAbilities.Add(
+                                    new Tuple<ManaAbility, OID>(chosen.manaAbility, chosen.manaAbilitySource)
+                                );
+                            }
+                            break;
+                        default:
+                            throw new NotImplementedException();
                     }
                 }
-                if (possManaSymbols.Count == 0)
-                {
-                    Console.WriteLine("Cannot pay for mana cost");
-                    return false;
-                }
-
-                var choice = new ManaChoice()
-                {
-                    Title = $"Choose which mana to use to pay for {manaToPay}",
-                    Min = 1, Max = 1,
-                    Options = possManaSymbols,
-                    Cancellable = true
-                };
-                MTG.Instance.PushChoice(choice);
-                if (choice.Cancelled)
-                    return false;
-                currentMana.Remove(choice.FirstChoice);
             }
-            manaSymbols = currentMana;
+            manaSymbols = new List<ManaSymbol>(tempManaSymbols);
             return true;
         }
     }

@@ -142,7 +142,7 @@ namespace MTGLib
             return true;
         }
 
-        private void RepayPaidCosts(OID source)
+        public void RepayPaidCosts(OID source)
         {
             foreach (int i in paidCosts)
             {

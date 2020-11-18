@@ -248,8 +248,8 @@ namespace MTGLib
                         }
 
                         OID abilityObj = choice.FirstChoice.activatedAbility.GenerateAbility(source);
-                        MTG.instance.objects[abilityObj].Resolve();
-                        MTG.instance.DeleteObject(abilityObj);
+                        objects[abilityObj].Resolve();
+                        DeleteObject(abilityObj);
                         break;
                     }
                 default:
