@@ -216,12 +216,18 @@ namespace MTGTestApp
             var mtg = new MTG(lib1, lib2);
             mtg.Start();
 
+            BoardViewer boardViewer = new BoardViewer();
+            Thread boardViewerThread = new Thread(boardViewer.Run);
+            boardViewerThread.Start();
+            boardViewer.Update(mtg);
+
             Thread gameLoopThread = new Thread(mtg.GameLoop);
             gameLoopThread.Start();
 
             while (true)
             {
                 mtg.ChoiceNewEvent.WaitOne();
+                boardViewer.Update(mtg);
 
                 Choice choice = mtg.CurrentUnresolvedChoice;
                 

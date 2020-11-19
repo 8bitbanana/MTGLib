@@ -1,0 +1,59 @@
+﻿<html>
+<head>
+    <link href="index.css" rel="stylesheet" type="text/css">
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js" crossorigin="anonymous"></script>
+    <script src="index.js"></script>
+    <title>MTGLib Board Viewer</title>
+</head>
+<body>
+    <h1>MTGLib Board Viewer</h1>
+    <p>Status: <span id="status">Loading</span></p>
+
+    <div class="hidden-container">
+        <div class="player-container border">
+            <div class="player-header border">
+                
+                <h1>Player 1 - 20 life</h1>
+            </div>
+            <div class="player-battlefield border">
+
+            </div>
+            <div class="player-zones">
+                <div class="player-zone-hand border">
+
+                </div>
+                <div class="player-zone-library border">
+                    <p class="zone-header">Library</p>
+                    <div class="zone-count-container">
+                        <p class="zone-count">
+                            0
+                        </p>
+                    </div>
+                </div>
+                <div class="player-zone-graveyard border">
+                    <p class="zone-header">Graveyard</p>
+                    <div class="zone-count-container">
+                        <p class="zone-count">
+                            0
+                        </p>
+                    </div>
+                </div>
+                <div class="player-zone-exile border">
+                    <p class="zone-header">Exile</p>
+                    <div class="zone-count-container">
+                        <p class="zone-count">
+                            0
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="stack-container border">
+            
+        </div>
+    </div>
+</body>
+</html>

@@ -6,7 +6,23 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="EmbedIO" Version="3.4.3" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\MTGLib\MTGLib.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="web\index.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="web\index.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="web\index.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

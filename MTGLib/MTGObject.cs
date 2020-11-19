@@ -233,6 +233,8 @@ namespace MTGLib
 
         public MTGObjectAttributes attr { get { return attributes; } }
 
+        public BaseCardAttributes baseattr { get { return baseCardAttributes; } }
+
         public int owner { get { return baseCardAttributes.owner; } }
 
         public bool CanBePermanent { get
