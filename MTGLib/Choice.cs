@@ -29,12 +29,12 @@ namespace MTGLib
 
         public bool Cancellable = false;
 
-        public List<T> Choices { get; protected set; }
+        public List<T> Chosen { get; protected set; }
 
         public T FirstChoice { get
             {
-                if (Choices.Count > 0)
-                    return Choices[0];
+                if (Chosen.Count > 0)
+                    return Chosen[0];
                 throw new IndexOutOfRangeException();
             }
         }
@@ -152,7 +152,7 @@ namespace MTGLib
             if (Verify(choices))
             {
                 Resolved = true;
-                Choices = choices;
+                Chosen = choices;
             } else
             {
                 Resolved = false;
@@ -249,6 +249,28 @@ namespace MTGLib
                 str += " " + cardType.GetString();
             }
             return str;
+        }
+    }
+
+    public class PlayerOrOIDChoice : Choice<PlayerOrOID>
+    {
+        protected override string OptionString(PlayerOrOID option)
+        {
+            switch (option.type)
+            {
+                case PlayerOrOID.ValueType.OID:
+                    MTGObject obj = MTG.Instance.objects[option.OID];
+                    string str = obj.attr.name + " -";
+                    foreach (var cardType in obj.attr.cardTypes)
+                    {
+                        str += " " + cardType.GetString();
+                    }
+                    return str;
+                case PlayerOrOID.ValueType.Player:
+                    return "Player " + option.Player.ToString();
+                default:
+                    throw new NotImplementedException();
+            }
         }
     }
 

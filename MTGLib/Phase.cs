@@ -78,6 +78,35 @@ namespace MTGLib
                     break;
                 case PhaseType.CombatAttackers:
                     // Attackers are declared by AP
+
+                    //List<OID> possibleAttackers = new List<OID>();
+                    //foreach (OID oid in mtg.battlefield)
+                    //{
+                    //    var mtgobj = mtg.objects[oid];
+                    //    if (mtgobj.attr.controller != mtg.turn.playerTurnIndex)
+                    //        continue;
+                    //    if (!mtgobj.attr.cardTypes.Contains(MTGObject.CardType.Creature))
+                    //        continue;
+                    //    if (!mtgobj.CanAttack)
+                    //        continue;
+                    //    possibleAttackers.Add(oid);
+                    //}
+                    //if (possibleAttackers.Count > 0)
+                    //{
+                    //    OIDChoice attackChoice = new OIDChoice
+                    //    {
+                    //        Title = "Choose attackers",
+                    //        Options = possibleAttackers,
+                    //        Min = 0,
+                    //        Max = possibleAttackers.Count
+                    //    };
+                    //    mtg.PushChoice(attackChoice);
+                    //    foreach (OID oid in attackChoice.Choices)
+                    //    {
+                    //        Console.WriteLine($"{oid} is attacking.");
+                    //    }
+                    //}
+
                     // AP Priority
                     break;
                 case PhaseType.CombatBlockers:
@@ -109,6 +138,11 @@ namespace MTGLib
                     }
 
                     // All marked damage is removed
+                    foreach (var oid in mtg.battlefield)
+                    {
+                        mtg.objects[oid].permanentStatus.damage = 0;
+                    }
+
                     // No priority
                     break;
                 default:

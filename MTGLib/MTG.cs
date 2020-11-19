@@ -121,6 +121,44 @@ namespace MTGLib
             }
         }
 
+        public bool IsValidAnyTarget(PlayerOrOID playerOrOID)
+        {
+            if (playerOrOID.IsPlayer)
+                return true;
+
+            var obj = MTG.Instance.objects[playerOrOID.OID];
+            if (!obj.attr.cardTypes.Contains(MTGObject.CardType.Creature))
+                return false;
+            if (FindZoneFromOID(playerOrOID.OID) != battlefield)
+                return false;
+            return true;
+        }
+
+        public void DealDamage(PlayerOrOID playerOrOID, int amount)
+        {
+            switch (playerOrOID.type)
+            {
+                case (PlayerOrOID.ValueType.Player):
+                    DealDamage(playerOrOID.Player, amount);
+                    break;
+                case (PlayerOrOID.ValueType.OID):
+                    DealDamage(playerOrOID.OID, amount);
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        public void DealDamage(int player, int amount)
+        {
+            players[player].ChangeLife(-amount);
+        }
+
+        public void DealDamage(OID oid, int amount)
+        {
+            objects[oid].permanentStatus.damage += amount;
+        }
+
         public void GameLoop()
         {
             // Main loop
@@ -204,7 +242,16 @@ namespace MTGLib
                 case PriorityOption.OptionType.CastSpell:
                     {
                         OID source = choice.FirstChoice.source;
-                        bool result = objects[source].PayCastingCosts();
+
+                        bool result = objects[source].DeclareTargets();
+
+                        if (!result)
+                        {
+                            Console.WriteLine("Targets not declared, resetting choice");
+                            goto ResetChoice;
+                        }
+
+                        result = objects[source].PayCastingCosts();
                         if (!result)
                         {
                             Console.WriteLine("Cost not paid, resetting choice");

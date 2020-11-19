@@ -23,6 +23,11 @@ namespace MTGLib
 
         }
 
+        public void ChangeLife(int delta)
+        {
+            life += delta;
+        }
+
         public void Draw(int count = 1)
         {
             while (count-- > 0)
@@ -57,7 +62,7 @@ namespace MTGLib
                 };
                 choice.Options.AddRange(hand);
                 MTG.Instance.PushChoice(choice);
-                foreach (var card in choice.Choices)
+                foreach (var card in choice.Chosen)
                 {
                     MTG.Instance.MoveZone(card, hand, graveyard);
                 }

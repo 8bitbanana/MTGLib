@@ -4,6 +4,8 @@ using System.Text;
 
 namespace MTGLib
 {
+    using effectdef = Action<OID, List<Target>>;
+
     public class StaticAbility
     {
         List<Modification> modifications = new List<Modification>();
@@ -33,21 +35,20 @@ namespace MTGLib
             return BattlefieldCondition(oid) && ControllerCondition(oid);
         }
 
-        protected List<Action<OID>> reverseEffects = new List<Action<OID>>();
+        protected ResolutionAbility reverseResolution;
 
-        public ManaAbility(Cost[] costs, Func<OID, bool> condition, Action<OID>[] effects, Action<OID>[] reverseEffects)
-            : base(costs, condition, effects)
+        public ManaAbility(Cost[] costs, Func<OID, bool> condition, effectdef[] effects, effectdef[] reverseEffects)
+            : base(costs, condition, effects, null)
         {
-            this.reverseEffects.AddRange(reverseEffects);
+            reverseResolution = new ResolutionAbility(reverseEffects);
         }
-        public ManaAbility(Cost[] costs, Action<OID>[] effects, Action<OID>[] reverseEffects)
+        public ManaAbility(Cost[] costs, effectdef[] effects, effectdef[] reverseEffects)
             : this(costs, null, effects, reverseEffects) { }
 
         public OID GenerateReverseAbility(OID source)
         {
-            ResolutionAbility resolution = new ResolutionAbility(reverseEffects.ToArray());
             AbilityObject obj = new AbilityObject(
-                source, resolution, AbilityObject.AbilityType.Activated
+                source, reverseResolution, AbilityObject.AbilityType.Activated
             );
             return MTG.Instance.CreateObject(obj);
         }
@@ -72,6 +73,8 @@ namespace MTGLib
             return mtg.FindZoneFromOID(oid) == mtg.battlefield;
         }
 
+        
+
         protected static bool ControllerCondition(OID oid)
         {
             MTG mtg = MTG.Instance;
@@ -87,14 +90,14 @@ namespace MTGLib
 
         private List<int> paidCosts = new List<int>();
 
-        protected List<Action<OID>> effects = new List<Action<OID>>();
+        protected ResolutionAbility resolution;
         protected Func<OID, bool> condition;
 
-        public ActivatedAbility(Cost[] costs, Func<OID, bool> condition, params Action<OID>[] effects)
+        public ActivatedAbility(Cost[] costs, Func<OID, bool> condition, effectdef[] effects, Target[] targets)
         {
             this.costs.AddRange(costs);
             this.condition = condition;
-            this.effects.AddRange(effects);
+            resolution = new ResolutionAbility(effects, targets);
             SetConditionIfNull();
         }
 
@@ -104,14 +107,22 @@ namespace MTGLib
                 this.condition = ActivatedAbility.DefaultCondition;
         }
 
-        public ActivatedAbility(Cost[] costs, Action<OID>[] effects)
-            : this(costs, null, effects) { }
+        public ActivatedAbility(Cost[] costs, effectdef[] effects)
+            : this(costs, null, effects, null) { }
+
+        public ActivatedAbility(Cost[] costs, effectdef[] effects, Target[] targets)
+            : this(costs, null, effects, targets) { }
 
         public bool CanBeActivated(OID source)
         {
             if (!condition(source)) return false;
             if (!CanPayCosts(source)) return false;
             return true;
+        }
+        
+        public bool DeclareTargets(OID source)
+        {
+            return resolution.DeclareTargets(source);
         }
 
         public bool CanPayCosts(OID source)
@@ -153,7 +164,6 @@ namespace MTGLib
 
         public OID GenerateAbility(OID source)
         {
-            ResolutionAbility resolution = new ResolutionAbility(effects.ToArray());
             AbilityObject obj = new AbilityObject(
                 source, resolution, AbilityObject.AbilityType.Activated
             );
@@ -163,25 +173,44 @@ namespace MTGLib
 
     public class ResolutionAbility
     {
-        List<Action<OID>> effects = new List<Action<OID>>();
+        List<effectdef> effects = new List<effectdef>();
+
+        List<Target> targets = new List<Target>();
 
         public ResolutionAbility() { }
 
-        public ResolutionAbility(params Action<OID>[] resolutionEffects)
+        public ResolutionAbility(effectdef[] resolutionEffects)
+            : this(resolutionEffects, null) { }
+
+        public ResolutionAbility(effectdef[] resolutionEffects, Target[] targets)
         {
             effects.AddRange(resolutionEffects);
+            if (targets != null)
+                this.targets.AddRange(targets);
         }
 
-        public void AddEffect(Action<OID> effect)
+        public bool DeclareTargets(OID source)
         {
-            effects.Add(effect);
+            foreach (var target in targets)
+            {
+                if (!target.Declare(source))
+                    return false;
+            }
+            return true;
         }
 
         public void Resolve(OID source)
         {
-            foreach(var effect in effects)
+            foreach (var target in targets)
             {
-                effect(source);
+                if (!target.Declared)
+                {
+                    throw new ArgumentException("One or more targets were not declared.");
+                }
+            }
+            foreach (var effect in effects)
+            {
+                effect(source, targets);
             }
         }
     }

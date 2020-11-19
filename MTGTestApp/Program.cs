@@ -5,6 +5,8 @@ using MTGLib;
 
 namespace MTGTestApp
 {
+    using effectdef = Action<OID, List<Target>>;
+
     class Program
     {
         static void Main(string[] args)
@@ -47,9 +49,9 @@ namespace MTGTestApp
                                 ManaSymbol.HybridBoros
                             ))
                         },
-                        new Action<OID>[]
+                        new effectdef[]
                         {
-                            (source) =>
+                            (source, targets) =>
                             {
                                 MTG mtg_ = MTG.Instance;
 
@@ -96,16 +98,16 @@ namespace MTGTestApp
                         {
                             new CostTapSelf()
                         },
-                        new Action<OID>[] {
-                            (source) => {
+                        new effectdef[] {
+                            (source, targets) => {
                                 int controller = MTG.Instance.objects[source].attr.controller;
                                 MTG.Instance.players[controller].manaPool.AddMana(
                                     ManaSymbol.Blue
                                 );
                             }
                         },
-                        new Action<OID>[] {
-                            (source) => {
+                        new effectdef[] {
+                            (source, targets) => {
                                 int controller = MTG.Instance.objects[source].attr.controller;
                                 MTG.Instance.players[controller].manaPool.RemoveMana(
                                     ManaSymbol.Blue
@@ -128,16 +130,16 @@ namespace MTGTestApp
                         {
                             new CostTapSelf()
                         },
-                        new Action<OID>[] {
-                            (source) => {
+                        new effectdef[] {
+                            (source, targets) => {
                                 int controller = MTG.Instance.objects[source].attr.controller;
                                 MTG.Instance.players[controller].manaPool.AddMana(
                                     ManaSymbol.Red
                                 );
                             }
                         },
-                        new Action<OID>[] {
-                            (source) => {
+                        new effectdef[] {
+                            (source, targets) => {
                                 int controller = MTG.Instance.objects[source].attr.controller;
                                 MTG.Instance.players[controller].manaPool.RemoveMana(
                                     ManaSymbol.Red
@@ -173,9 +175,9 @@ namespace MTGTestApp
                             new CostTapSelf(),
                             new CostPayMana(new ManaCost(1))
                         },
-                        new Action<OID>[]
+                        new effectdef[]
                         {
-                            (source) =>
+                            (source, targets) =>
                             {
                                 int controller = MTG.Instance.objects[source].attr.controller;
                                 MTG.Instance.players[controller].manaPool.AddMana(
@@ -183,15 +185,44 @@ namespace MTGTestApp
                                 );
                             }
                         },
-                        new Action<OID>[]
+                        new effectdef[]
                         {
-                            (source) =>
+                            (source, targets) =>
                             {
                                 int controller = MTG.Instance.objects[source].attr.controller;
                                 MTG.Instance.players[controller].manaPool.RemoveMana(
                                     ManaSymbol.Red, ManaSymbol.Blue
                                 );
                             }
+                        }
+                    )
+                }
+            };
+
+            var bolt = new MTGObject.BaseCardAttributes()
+            {
+                name = "Lightning Bolt",
+                manaCost = new ManaCost(ManaSymbol.Red),
+                cardTypes = new HashSet<MTGObject.CardType> { MTGObject.CardType.Instant },
+                spellAbilities = new List<ResolutionAbility>
+                {
+                    new ResolutionAbility(
+                        new effectdef[]
+                        {
+                            (source, targets) =>
+                            {
+                                var damage = 3;
+                                var target = targets[0].SetTargets[0];
+                                MTG.Instance.DealDamage(target, damage);
+                            }
+                        },
+                        new Target[]
+                        {
+                            new Target(
+                                (playeroroid) =>
+                                {
+                                    return MTG.Instance.IsValidAnyTarget(playeroroid);
+                                })
                         }
                     )
                 }
@@ -208,7 +239,7 @@ namespace MTGTestApp
             for (int i=0; i<17; i++)
             {
                 lib1.Add(ogre);
-                lib1.Add(izzetSignet);
+                lib1.Add(bolt);
                 lib2.Add(crab);
                 lib2.Add(izzetSignet);
             }

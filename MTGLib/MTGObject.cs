@@ -121,6 +121,7 @@ namespace MTGLib
                 subTypes = attr.subTypes;
                 staticAbilities = attr.staticAbilities;
                 activatedAbilities = attr.activatedAbilities;
+                spellAbilities = attr.spellAbilities;
 
                 controller = attr.owner;
                 if (attr.manaCost != null)
@@ -188,12 +189,14 @@ namespace MTGLib
             public void Reset()
             {
                 tapped = flipped = facedown = phasedout = false;
+                damage = 0;
             }
 
             public bool tapped;
             public bool flipped;
             public bool facedown;
             public bool phasedout;
+            public int damage;
         }
 
         public enum CardType
@@ -247,6 +250,13 @@ namespace MTGLib
             }
         }
 
+        public bool CanAttack { get
+            {
+                // TODO - Determine if a creature can attack
+                return true;
+            }
+        }
+
         public MTGObject()
         {
             baseCardAttributes = new BaseCardAttributes();
@@ -260,6 +270,17 @@ namespace MTGLib
         }
 
         private List<int> paidCosts = new List<int>();
+
+        public bool DeclareTargets()
+        {
+            var oid = FindMyOID();
+            foreach (var res in attr.spellAbilities)
+            {
+                if (!res.DeclareTargets(oid))
+                    return false;
+            }
+            return true;
+        }
 
         public bool CanPayCosts()
         {
