@@ -354,7 +354,10 @@ namespace MTGLib
                 else
                     generic += mana.cmc;
             }
-            return $"{{{generic}}}{s}";
+            if (generic > 0)
+                return $"{{{generic}}}{s}";
+            else
+                return s;
         }
 
         public static ManaCost operator +(ManaCost x, ManaCost y)

@@ -45,6 +45,19 @@ namespace MTGLib
 
     public class Target
     {
+        public static Target AnyTarget
+        {
+            get
+            {
+                return new Target(
+                    (playeroroid) =>
+                    {
+                        return MTG.Instance.IsValidAnyTarget(playeroroid);
+                    }
+                );
+            }
+        }
+
         readonly Func<PlayerOrOID, bool> condition;
 
         readonly int Min = 1;

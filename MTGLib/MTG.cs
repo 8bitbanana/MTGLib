@@ -23,7 +23,8 @@ namespace MTGLib
 
         public List<ContinuousEffect> continuousEffects = new List<ContinuousEffect>();
 
-        public struct Turn
+
+        public struct TurnInfo
         {
             public int turnCount;
             public int playerTurnIndex;
@@ -88,7 +89,7 @@ namespace MTGLib
                 return false;
             }
         }
-        public Turn turn = new Turn();
+        public TurnInfo turn = new TurnInfo();
 
         int noActionPassCount = 0;
         bool haveAllPlayersPassed { get { return noActionPassCount >= players.Count; } }
@@ -132,6 +133,11 @@ namespace MTGLib
             if (FindZoneFromOID(playerOrOID.OID) != battlefield)
                 return false;
             return true;
+        }
+
+        public bool IsPermanent(OID oid)
+        {
+            return FindZoneFromOID(oid) == battlefield;
         }
 
         public void DealDamage(PlayerOrOID playerOrOID, int amount)

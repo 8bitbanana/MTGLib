@@ -83,6 +83,10 @@ namespace MTGLib
             this.abilityType = abilityType;
         }
 
+        public override Color identity => throw new NotImplementedException();
+        public override MTGObjectAttributes attr => throw new NotImplementedException();
+        public override BaseCardAttributes baseattr => throw new NotImplementedException();
+
         public override void Resolve()
         {
             resolutionAbility.Resolve(source);
@@ -234,9 +238,9 @@ namespace MTGLib
 
         public CounterStore counters;
 
-        public MTGObjectAttributes attr { get { return attributes; } }
+        public virtual MTGObjectAttributes attr { get { return attributes; } }
 
-        public BaseCardAttributes baseattr { get { return baseCardAttributes; } }
+        public virtual BaseCardAttributes baseattr { get { return baseCardAttributes; } }
 
         public int owner { get { return baseCardAttributes.owner; } }
 

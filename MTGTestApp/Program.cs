@@ -216,14 +216,7 @@ namespace MTGTestApp
                                 MTG.Instance.DealDamage(target, damage);
                             }
                         },
-                        new Target[]
-                        {
-                            new Target(
-                                (playeroroid) =>
-                                {
-                                    return MTG.Instance.IsValidAnyTarget(playeroroid);
-                                })
-                        }
+                        new Target[] {Target.AnyTarget}
                     )
                 }
             };
