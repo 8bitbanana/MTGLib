@@ -167,12 +167,6 @@ namespace MTGLib
             tempManaSymbols.Add(mana);
         }
 
-        public void RemoveMana(ManaSymbol mana)
-        {
-            manaSymbols.Remove(mana);
-            tempManaSymbols.Remove(mana);
-        }
-
         public void AddMana(params ManaSymbol[] mana)
         {
             foreach (var singlemana in mana)
@@ -185,12 +179,23 @@ namespace MTGLib
                 AddMana(mana);
         }
 
-        public void RemoveMana(params ManaSymbol[] mana)
+        public bool RemoveMana(ManaSymbol mana)
         {
+            bool result = manaSymbols.Remove(mana);
+            if (result)
+                tempManaSymbols.Remove(mana);
+            return result;
+        }
+
+        public bool RemoveMana(params ManaSymbol[] mana)
+        {
+            bool allRemoved = true;
             foreach (var manaSymbol in mana)
             {
-                RemoveMana(manaSymbol);
+                if (!RemoveMana(manaSymbol))
+                    allRemoved = false;
             }
+            return allRemoved;
         }
 
         public IEnumerator<ManaSymbol> GetEnumerator()

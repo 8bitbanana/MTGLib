@@ -122,6 +122,11 @@ namespace MTGLib
             }
         }
 
+        public bool PushEvent(MTGEvent mtgEvent)
+        {
+            return mtgEvent.Apply();
+        }
+
         public bool IsValidAnyTarget(PlayerOrOID playerOrOID)
         {
             if (playerOrOID.IsPlayer)
