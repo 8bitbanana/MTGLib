@@ -56,7 +56,7 @@ namespace MTGLib
     {
         public readonly int player;
         public readonly ManaSymbol mana;
-        public AddManaEvent(OID source, int player, ManaSymbol mana) : base(source)
+        internal AddManaEvent(OID source, int player, ManaSymbol mana) : base(source)
         {
             this.player = player;
             this.mana = mana;

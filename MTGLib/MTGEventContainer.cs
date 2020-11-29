@@ -26,6 +26,32 @@ namespace MTGLib
         public EventContainerPayManaCost(params PayManaCostEvent[] events) : base(events) { }
     }
 
+    public class EventContainerAddMana : MTGEventContainer<AddManaEvent>
+    {
+        public static EventContainerAddMana Auto(OID source, int player, params ManaSymbol[] manaSymbols)
+        {
+            int count = 0;
+            foreach (var mana in manaSymbols)
+                count++;
+
+            var list = new AddManaEvent[count];
+            int index = 0;
+            foreach (var mana in manaSymbols)
+            {
+                list[index++] = new AddManaEvent(source, player, mana);
+            }
+            return new EventContainerAddMana(source, list);
+        }
+
+        public static EventContainerAddMana Auto(OID source, int player, ManaCost mana)
+        {
+            var list = new ManaSymbol[mana.manaSymbols.Count];
+            return Auto(source, player, list);
+        }
+
+        public EventContainerAddMana(OID source, params AddManaEvent[] events) : base(source, events) { }
+    }
+
     public class EventContainerDrawCards : MTGEventContainer<DrawCardEvent>
     {
         public static EventContainerDrawCards Auto(OID source, int player, int count)
@@ -75,6 +101,13 @@ namespace MTGLib
             this.events = events;
         }
 
+        public IEnumerable<T> Events { get
+            {
+                foreach (var evnt in events)
+                    yield return evnt;
+            }
+        }
+
         protected override bool IsPaymentPossible { get
             {
                 foreach (var evnt in events)
@@ -108,6 +141,13 @@ namespace MTGLib
         public MTGEventContainer(OID source, params T[] events) : base(source)
         {
             this.events = events;
+        }
+
+        public IEnumerable<T> Events { get
+            {
+                foreach (var evnt in events)
+                    yield return evnt;
+            }
         }
 
         protected override bool ApplyAction()

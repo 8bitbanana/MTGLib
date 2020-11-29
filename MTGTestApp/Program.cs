@@ -99,7 +99,7 @@ namespace MTGTestApp
                         new EffectEvent.Effect[] {
                             (source, targets, callback) => {
                                 int controller = MTG.Instance.objects[source].attr.controller;
-                                callback(new AddManaEvent(source, controller, ManaSymbol.Blue));
+                                callback(EventContainerAddMana.Auto(source, controller, ManaSymbol.Blue));
                             }
                         }
                     )
@@ -121,7 +121,7 @@ namespace MTGTestApp
                         new EffectEvent.Effect[] {
                             (source, targets, callback) => {
                                 int controller = MTG.Instance.objects[source].attr.controller;
-                                callback(new AddManaEvent(source, controller, ManaSymbol.Red));
+                                callback(EventContainerAddMana.Auto(source, controller, ManaSymbol.Red));
                             }
                         }
                     )
@@ -158,8 +158,7 @@ namespace MTGTestApp
                             (source, targets, callback) =>
                             {
                                 int controller = MTG.Instance.objects[source].attr.controller;
-                                callback(new AddManaEvent(source, controller, ManaSymbol.Red));
-                                callback(new AddManaEvent(source, controller, ManaSymbol.Blue));
+                                callback(EventContainerAddMana.Auto(source, controller, ManaSymbol.Red, ManaSymbol.Blue));
                             }
                         }
                     )
