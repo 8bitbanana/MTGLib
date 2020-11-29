@@ -5,8 +5,6 @@ using MTGLib;
 
 namespace MTGTestApp
 {
-    using effectdef = Action<OID, List<Target>>;
-
     class Program
     {
         static void Main(string[] args)
@@ -49,9 +47,9 @@ namespace MTGTestApp
                                 ManaSymbol.HybridBoros
                             ))
                         },
-                        new effectdef[]
+                        new EffectEvent.Effect[]
                         {
-                            (source, targets) =>
+                            (source, targets, callback) =>
                             {
                                 MTG mtg_ = MTG.Instance;
 
@@ -98,10 +96,10 @@ namespace MTGTestApp
                         {
                             new TapSelfCostEvent()
                         },
-                        new effectdef[] {
-                            (source, targets) => {
+                        new EffectEvent.Effect[] {
+                            (source, targets, callback) => {
                                 int controller = MTG.Instance.objects[source].attr.controller;
-                                MTG.Instance.PushEvent(new AddManaEvent(source, controller, ManaSymbol.Blue));
+                                callback(new AddManaEvent(source, controller, ManaSymbol.Blue));
                             }
                         }
                     )
@@ -120,10 +118,10 @@ namespace MTGTestApp
                         {
                             new TapSelfCostEvent()
                         },
-                        new effectdef[] {
-                            (source, targets) => {
+                        new EffectEvent.Effect[] {
+                            (source, targets, callback) => {
                                 int controller = MTG.Instance.objects[source].attr.controller;
-                                MTG.Instance.PushEvent(new AddManaEvent(source, controller, ManaSymbol.Red));
+                                callback(new AddManaEvent(source, controller, ManaSymbol.Red));
                             }
                         }
                     )
@@ -155,13 +153,13 @@ namespace MTGTestApp
                             new TapSelfCostEvent(),
                             EventContainerPayManaCost.Auto(new ManaCost(1))
                         },
-                        new effectdef[]
+                        new EffectEvent.Effect[]
                         {
-                            (source, targets) =>
+                            (source, targets, callback) =>
                             {
                                 int controller = MTG.Instance.objects[source].attr.controller;
-                                MTG.Instance.PushEvent(new AddManaEvent(source, controller, ManaSymbol.Red));
-                                MTG.Instance.PushEvent(new AddManaEvent(source, controller, ManaSymbol.Blue));
+                                callback(new AddManaEvent(source, controller, ManaSymbol.Red));
+                                callback(new AddManaEvent(source, controller, ManaSymbol.Blue));
                             }
                         }
                     )
@@ -176,13 +174,13 @@ namespace MTGTestApp
                 spellAbilities = new List<ResolutionAbility>
                 {
                     new ResolutionAbility(
-                        new effectdef[]
+                        new EffectEvent.Effect[]
                         {
-                            (source, targets) =>
+                            (source, targets, callback) =>
                             {
                                 var damage = 3;
                                 var target = targets[0].SetTargets[0];
-                                MTG.Instance.PushEvent(new DealDamageEvent(source, target, damage));
+                                callback(new DealDamageEvent(source, target, damage));
                             }
                         },
                         new Target[] {Target.AnyTarget}

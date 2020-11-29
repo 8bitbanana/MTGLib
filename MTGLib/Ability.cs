@@ -4,8 +4,6 @@ using System.Text;
 
 namespace MTGLib
 {
-    using effectdef = Action<OID, List<Target>>;
-
     public class StaticAbility
     {
         List<Modification> modifications = new List<Modification>();
@@ -35,12 +33,12 @@ namespace MTGLib
             return BattlefieldCondition(oid) && ControllerCondition(oid);
         }
 
-        public ManaAbility(CostEvent[] costs, Func<OID, bool> condition, effectdef[] effects)
+        public ManaAbility(CostEvent[] costs, Func<OID, bool> condition, EffectEvent.Effect[] effects)
             : base(costs, condition, effects, null)
         {
             
         }
-        public ManaAbility(CostEvent[] costs, effectdef[] effects)
+        public ManaAbility(CostEvent[] costs, EffectEvent.Effect[] effects)
             : this(costs, null, effects) { }
 
 
@@ -87,7 +85,7 @@ namespace MTGLib
             }
         }
 
-        public ActivatedAbility(CostEvent[] costs, Func<OID, bool> condition, effectdef[] effects, Target[] targets)
+        public ActivatedAbility(CostEvent[] costs, Func<OID, bool> condition, EffectEvent.Effect[] effects, Target[] targets)
         {
             this.costs.AddRange(costs);
             this.condition = condition;
@@ -111,26 +109,26 @@ namespace MTGLib
             return true;
         }
 
-        public ActivatedAbility(CostEvent[] costs, effectdef[] effects)
+        public ActivatedAbility(CostEvent[] costs, EffectEvent.Effect[] effects)
             : this(costs, null, effects, null) { }
 
-        public ActivatedAbility(CostEvent[] costs, effectdef[] effects, Target[] targets)
+        public ActivatedAbility(CostEvent[] costs, EffectEvent.Effect[] effects, Target[] targets)
             : this(costs, null, effects, targets) { }
 
     }
 
     public class ResolutionAbility
     {
-        List<effectdef> effects = new List<effectdef>();
+        List<EffectEvent.Effect> effects = new List<EffectEvent.Effect>();
 
         List<Target> targets = new List<Target>();
 
         public ResolutionAbility() { }
 
-        public ResolutionAbility(effectdef[] resolutionEffects)
+        public ResolutionAbility(EffectEvent.Effect[] resolutionEffects)
             : this(resolutionEffects, null) { }
 
-        public ResolutionAbility(effectdef[] resolutionEffects, Target[] targets)
+        public ResolutionAbility(EffectEvent.Effect[] resolutionEffects, Target[] targets)
         {
             effects.AddRange(resolutionEffects);
             if (targets != null)
@@ -154,7 +152,22 @@ namespace MTGLib
             }
             foreach (var effect in effects)
             {
-                effect(source, targets);
+                MTG.Instance.PushEvent(new EffectEvent(source, effect, targets));
+            }
+        }
+
+        public IEnumerable<EffectEvent> GetResolutionEvents(OID source)
+        {
+            foreach (var target in targets)
+            {
+                if (!target.Declared)
+                {
+                    throw new InvalidOperationException("Targets are not declared for resolution.");
+                }
+            }
+            foreach (var effect in effects)
+            {
+                yield return new EffectEvent(source, effect, targets);
             }
         }
     }

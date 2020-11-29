@@ -114,6 +114,7 @@ namespace MTGLib
         // A cost doesn't care that one of it's children was irreversable.
         public sealed override void Revert()
         {
+            Console.WriteLine($"{GetType().Name} reverted!");
             RevertAllChildren();
             RevertAction();
         }

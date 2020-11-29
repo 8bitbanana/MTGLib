@@ -280,6 +280,37 @@ namespace MTGLib
         }
     }
 
+    public class EffectEvent : MTGEvent
+    {
+        public delegate bool PushEventCallback(MTGEvent newEvent);
+
+        public bool callback(MTGEvent newEvent)
+        {
+            return PushChild(newEvent);
+        }
+
+        public delegate void Effect(OID source, List<Target> targets, PushEventCallback callback);
+
+        public readonly Effect effect;
+
+        public readonly List<Target> targets;
+
+        protected override bool SelfRevertable => true;
+
+        public EffectEvent(OID source, Effect effect, List<Target> targets) : base(source)
+        {
+            this.effect = effect;
+            this.targets = targets;
+        }
+
+        protected override bool ApplyAction()
+        {
+
+            effect(source, targets, callback);
+            return true;
+        }
+    }
+
     public abstract class MTGEvent
     {
         protected readonly LinkedList<MTGEvent> children = new LinkedList<MTGEvent>();
@@ -332,7 +363,12 @@ namespace MTGLib
         public virtual void Revert()
         {
             if (!Revertable)
+            {
+                Console.WriteLine($"{GetType().Name} did not revert!");
                 return;
+            }
+                
+            Console.WriteLine($"{GetType().Name} reverted!");
             RevertAction();
             RevertAllChildren();
         }

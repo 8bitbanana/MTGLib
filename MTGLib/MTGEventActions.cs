@@ -119,15 +119,13 @@ namespace MTGLib
 
             if (ability is ManaAbility)
             {
-                ability.resolution.Resolve(source);
+                foreach (var evnt in ability.resolution.GetResolutionEvents(source))
+                {
+                    PushChild(evnt);
+                }
             }
 
             return true;
-        }
-
-        protected override void RevertAction()
-        {
-            throw new NotImplementedException();
         }
     }
 
