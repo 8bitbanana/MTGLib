@@ -122,9 +122,20 @@ namespace MTGLib
             }
         }
 
+        static int indent = 0;
+
         public bool PushEvent(MTGEvent mtgEvent)
         {
-            return mtgEvent.Apply();
+            string indentstr = "";
+            for (int i = 0; i < indent; i++)
+                indentstr += " : ";
+
+            Console.WriteLine($"{indentstr}{mtgEvent.GetType().Name} pushed");
+            indent++;
+            var result = mtgEvent.Apply();
+            indent--;
+            Console.WriteLine($"{indentstr}{mtgEvent.GetType().Name} resolved");
+            return result;
         }
 
         public bool IsValidAnyTarget(PlayerOrOID playerOrOID)
@@ -143,31 +154,6 @@ namespace MTGLib
         public bool IsPermanent(OID oid)
         {
             return FindZoneFromOID(oid) == battlefield;
-        }
-
-        public void DealDamage(PlayerOrOID playerOrOID, int amount)
-        {
-            switch (playerOrOID.type)
-            {
-                case (PlayerOrOID.ValueType.Player):
-                    DealDamage(playerOrOID.Player, amount);
-                    break;
-                case (PlayerOrOID.ValueType.OID):
-                    DealDamage(playerOrOID.OID, amount);
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-        }
-
-        public void DealDamage(int player, int amount)
-        {
-            players[player].ChangeLife(-amount);
-        }
-
-        public void DealDamage(OID oid, int amount)
-        {
-            objects[oid].permanentStatus.damage += amount;
         }
 
         public void GameLoop()
@@ -254,60 +240,33 @@ namespace MTGLib
                     {
                         OID source = choice.FirstChoice.source;
 
-                        bool result = objects[source].DeclareTargets();
-
-                        if (!result)
-                        {
-                            Console.WriteLine("Targets not declared, resetting choice");
+                        if (!PushEvent(new CastSpellEvent(source)))
                             goto ResetChoice;
-                        }
 
-                        result = objects[source].PayCastingCosts();
-                        if (!result)
-                        {
-                            Console.WriteLine("Cost not paid, resetting choice");
-                            goto ResetChoice;
-                        }
-
-                        MoveZone(source, theStack);
                         break;
                     }
                 case PriorityOption.OptionType.PlayLand:
-                    MoveZone(choice.FirstChoice.source, battlefield);
+                    if (!PushEvent(new PlayLandEvent(choice.FirstChoice.source)))
+                        goto ResetChoice;
                     break;
                 case PriorityOption.OptionType.ActivateAbility:
                     {
                         OID source = choice.FirstChoice.source;
-
                         ActivatedAbility ability = choice.FirstChoice.activatedAbility;
 
-                        bool result = ability.PayCosts(source);
-                        if (!result)
-                        {
-                            Console.WriteLine("Cost not paid, resetting choice");
+                        if (!PushEvent(new ActivateAbilityEvent(source, ability)))
                             goto ResetChoice;
-                        }
-                        OID abilityobj = choice.FirstChoice.activatedAbility.GenerateAbility(source);
 
-                        MTG.instance.theStack.Push(abilityobj);
                         break;
                     }
                 case PriorityOption.OptionType.ManaAbility:
                     {
                         OID source = choice.FirstChoice.source;
-
-
                         ManaAbility ability = choice.FirstChoice.activatedAbility as ManaAbility;
-                        bool result = ability.PayCosts(source);
-                        if (!result)
-                        {
-                            Console.WriteLine("Cost not paid, resetting choice");
-                            goto ResetChoice;
-                        }
 
-                        OID abilityObj = choice.FirstChoice.activatedAbility.GenerateAbility(source);
-                        objects[abilityObj].Resolve();
-                        DeleteObject(abilityObj);
+                        if (!PushEvent(new ActivateAbilityEvent(source, ability)))
+                            goto ResetChoice;
+
                         break;
                     }
                 default:
@@ -524,7 +483,10 @@ namespace MTGLib
             foreach (var player in players)
             {
                 player.library.Shuffle();
-                player.Draw(7);
+                for (int i=0; i<7; i++)
+                {
+                    player.hand.Push(player.library.Pop());
+                }
             }
         }
 

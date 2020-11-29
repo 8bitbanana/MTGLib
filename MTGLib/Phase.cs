@@ -55,7 +55,7 @@ namespace MTGLib
                     {
                         var mtgobj = mtg.objects[oid];
                         if (mtgobj.attr.controller == mtg.turn.playerTurnIndex)
-                            mtgobj.permanentStatus.tapped = false;
+                            mtg.PushEvent(new UntapEvent(oid));
                     }
 
                     // No priority
@@ -65,7 +65,7 @@ namespace MTGLib
                     break;
                 case PhaseType.Draw:
                     // The active player draws a card
-                    mtg.players[mtg.turn.playerTurnIndex].Draw();
+                    mtg.PushEvent(EventContainerDrawCards.Auto(null, mtg.turn.playerTurnIndex, 1));
 
                     // AP Priority
                     break;
@@ -131,11 +131,14 @@ namespace MTGLib
                     // AP Priority
                     break;
                 case PhaseType.Cleanup:
-                    // Players discard to max hand size
-                    foreach (var player in mtg.players)
-                    {
-                        player.Discard(player.hand.DiscardsNeeded);
-                    }
+                    // Active player discards to max hand size
+                    mtg.PushEvent(
+                        EventContainerDiscardCards.Auto(
+                            null,
+                            mtg.turn.playerTurnIndex,
+                            mtg.players[mtg.turn.playerTurnIndex].hand.DiscardsNeeded
+                        )
+                    );
 
                     // All marked damage is removed
                     foreach (var oid in mtg.battlefield)

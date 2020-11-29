@@ -37,7 +37,14 @@ namespace MTGLib
                 Console.WriteLine(" == Stack ==");
                 foreach (var x in this)
                 {
-                    Console.WriteLine(MTG.Instance.objects[x].ToString());
+                    var obj = MTG.Instance.objects[x];
+                    if (obj is AbilityObject cast)
+                    {
+                        var sourceobj = MTG.Instance.objects[cast.source];
+                        Console.WriteLine($"{cast.abilityType.GetString()} - {sourceobj.ToString()}");
+                    }
+                    else
+                        Console.WriteLine(MTG.Instance.objects[x].ToString());
                 }
                 Console.WriteLine(" ==== ");
             } else

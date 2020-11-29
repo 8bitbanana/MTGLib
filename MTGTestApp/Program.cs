@@ -40,9 +40,9 @@ namespace MTGTestApp
                 activatedAbilities = new List<ActivatedAbility>
                 {
                     new ActivatedAbility(
-                        new Cost[]
+                        new CostEvent[]
                         {
-                            new CostPayMana(new ManaCost(
+                            EventContainerPayManaCost.Auto(new ManaCost(
                                 ManaSymbol.HybridBoros,
                                 ManaSymbol.HybridBoros,
                                 ManaSymbol.HybridBoros,
@@ -94,24 +94,14 @@ namespace MTGTestApp
                 activatedAbilities = new List<ActivatedAbility>
                 {
                     new ManaAbility(
-                        new Cost[]
+                        new CostEvent[]
                         {
-                            new CostTapSelf()
+                            new TapSelfCostEvent()
                         },
                         new effectdef[] {
                             (source, targets) => {
                                 int controller = MTG.Instance.objects[source].attr.controller;
-                                MTG.Instance.players[controller].manaPool.AddMana(
-                                    ManaSymbol.Blue
-                                );
-                            }
-                        },
-                        new effectdef[] {
-                            (source, targets) => {
-                                int controller = MTG.Instance.objects[source].attr.controller;
-                                MTG.Instance.players[controller].manaPool.RemoveMana(
-                                    ManaSymbol.Blue
-                                );
+                                MTG.Instance.PushEvent(new AddManaEvent(source, controller, ManaSymbol.Blue));
                             }
                         }
                     )
@@ -126,24 +116,14 @@ namespace MTGTestApp
                 activatedAbilities = new List<ActivatedAbility>
                 {
                     new ManaAbility(
-                        new Cost[]
+                        new CostEvent[]
                         {
-                            new CostTapSelf()
+                            new TapSelfCostEvent()
                         },
                         new effectdef[] {
                             (source, targets) => {
                                 int controller = MTG.Instance.objects[source].attr.controller;
-                                MTG.Instance.players[controller].manaPool.AddMana(
-                                    ManaSymbol.Red
-                                );
-                            }
-                        },
-                        new effectdef[] {
-                            (source, targets) => {
-                                int controller = MTG.Instance.objects[source].attr.controller;
-                                MTG.Instance.players[controller].manaPool.RemoveMana(
-                                    ManaSymbol.Red
-                                );
+                                MTG.Instance.PushEvent(new AddManaEvent(source, controller, ManaSymbol.Red));
                             }
                         }
                     )
@@ -170,29 +150,18 @@ namespace MTGTestApp
                 activatedAbilities = new List<ActivatedAbility>
                 {
                     new ManaAbility(
-                        new Cost[]
+                        new CostEvent[]
                         {
-                            new CostTapSelf(),
-                            new CostPayMana(new ManaCost(1))
+                            new TapSelfCostEvent(),
+                            EventContainerPayManaCost.Auto(new ManaCost(1))
                         },
                         new effectdef[]
                         {
                             (source, targets) =>
                             {
                                 int controller = MTG.Instance.objects[source].attr.controller;
-                                MTG.Instance.players[controller].manaPool.AddMana(
-                                    ManaSymbol.Red, ManaSymbol.Blue
-                                );
-                            }
-                        },
-                        new effectdef[]
-                        {
-                            (source, targets) =>
-                            {
-                                int controller = MTG.Instance.objects[source].attr.controller;
-                                MTG.Instance.players[controller].manaPool.RemoveMana(
-                                    ManaSymbol.Red, ManaSymbol.Blue
-                                );
+                                MTG.Instance.PushEvent(new AddManaEvent(source, controller, ManaSymbol.Red));
+                                MTG.Instance.PushEvent(new AddManaEvent(source, controller, ManaSymbol.Blue));
                             }
                         }
                     )
@@ -213,7 +182,7 @@ namespace MTGTestApp
                             {
                                 var damage = 3;
                                 var target = targets[0].SetTargets[0];
-                                MTG.Instance.DealDamage(target, damage);
+                                MTG.Instance.PushEvent(new DealDamageEvent(source, target, damage));
                             }
                         },
                         new Target[] {Target.AnyTarget}

@@ -35,23 +35,15 @@ namespace MTGLib
             return BattlefieldCondition(oid) && ControllerCondition(oid);
         }
 
-        protected ResolutionAbility reverseResolution;
-
-        public ManaAbility(Cost[] costs, Func<OID, bool> condition, effectdef[] effects, effectdef[] reverseEffects)
+        public ManaAbility(CostEvent[] costs, Func<OID, bool> condition, effectdef[] effects)
             : base(costs, condition, effects, null)
         {
-            reverseResolution = new ResolutionAbility(reverseEffects);
+            
         }
-        public ManaAbility(Cost[] costs, effectdef[] effects, effectdef[] reverseEffects)
-            : this(costs, null, effects, reverseEffects) { }
+        public ManaAbility(CostEvent[] costs, effectdef[] effects)
+            : this(costs, null, effects) { }
 
-        public OID GenerateReverseAbility(OID source)
-        {
-            AbilityObject obj = new AbilityObject(
-                source, reverseResolution, AbilityObject.AbilityType.Activated
-            );
-            return MTG.Instance.CreateObject(obj);
-        }
+
 
         protected override void SetConditionIfNull()
         {
@@ -73,8 +65,6 @@ namespace MTGLib
             return mtg.FindZoneFromOID(oid) == mtg.battlefield;
         }
 
-        
-
         protected static bool ControllerCondition(OID oid)
         {
             MTG mtg = MTG.Instance;
@@ -86,14 +76,18 @@ namespace MTGLib
             return BattlefieldCondition(oid) && ControllerCondition(oid);
         }
 
-        protected List<Cost> costs = new List<Cost>();
+        protected List<CostEvent> costs = new List<CostEvent>();
 
-        private List<int> paidCosts = new List<int>();
-
-        protected ResolutionAbility resolution;
+        public readonly ResolutionAbility resolution;
         protected Func<OID, bool> condition;
 
-        public ActivatedAbility(Cost[] costs, Func<OID, bool> condition, effectdef[] effects, Target[] targets)
+        public IEnumerable<CostEvent> Costs { get
+            {
+                foreach (var cost in costs) yield return cost;
+            }
+        }
+
+        public ActivatedAbility(CostEvent[] costs, Func<OID, bool> condition, effectdef[] effects, Target[] targets)
         {
             this.costs.AddRange(costs);
             this.condition = condition;
@@ -107,68 +101,22 @@ namespace MTGLib
                 this.condition = ActivatedAbility.DefaultCondition;
         }
 
-        public ActivatedAbility(Cost[] costs, effectdef[] effects)
-            : this(costs, null, effects, null) { }
-
-        public ActivatedAbility(Cost[] costs, effectdef[] effects, Target[] targets)
-            : this(costs, null, effects, targets) { }
-
         public bool CanBeActivated(OID source)
         {
-            if (!condition(source)) return false;
-            if (!CanPayCosts(source)) return false;
-            return true;
-        }
-        
-        public bool DeclareTargets(OID source)
-        {
-            return resolution.DeclareTargets(source);
-        }
-
-        public bool CanPayCosts(OID source)
-        {
+            if (!condition(source))
+                return false;
             foreach (var cost in costs)
-            {
-                if (!cost.CanPay(source)) return false;
-            }
-            return true;
-        }
-
-        public bool PayCosts(OID source)
-        {
-            paidCosts.Clear();
-            for (int i=0; i<costs.Count; i++)
-            {
-                var cost = costs[i];
-                bool result = cost.Pay(source);
-                if (result)
-                {
-                    paidCosts.Add(i);
-                } else
-                {
-                    RepayPaidCosts(source);
+                if (!cost.CanPay(source))
                     return false;
-                }
-            }
             return true;
         }
 
-        public void RepayPaidCosts(OID source)
-        {
-            foreach (int i in paidCosts)
-            {
-                var cost = costs[i];
-                cost.ReversePay(source);
-            }
-        }
+        public ActivatedAbility(CostEvent[] costs, effectdef[] effects)
+            : this(costs, null, effects, null) { }
 
-        public OID GenerateAbility(OID source)
-        {
-            AbilityObject obj = new AbilityObject(
-                source, resolution, AbilityObject.AbilityType.Activated
-            );
-            return MTG.Instance.CreateObject(obj);
-        }
+        public ActivatedAbility(CostEvent[] costs, effectdef[] effects, Target[] targets)
+            : this(costs, null, effects, targets) { }
+
     }
 
     public class ResolutionAbility
@@ -189,14 +137,10 @@ namespace MTGLib
                 this.targets.AddRange(targets);
         }
 
-        public bool DeclareTargets(OID source)
-        {
-            foreach (var target in targets)
-            {
-                if (!target.Declare(source))
-                    return false;
+        public IEnumerable<Target> Targets { get {
+                foreach (var target in targets)
+                    yield return target;
             }
-            return true;
         }
 
         public void Resolve(OID source)
@@ -205,7 +149,7 @@ namespace MTGLib
             {
                 if (!target.Declared)
                 {
-                    throw new ArgumentException("One or more targets were not declared.");
+                    throw new InvalidOperationException("Targets are not declared for resolution.");
                 }
             }
             foreach (var effect in effects)

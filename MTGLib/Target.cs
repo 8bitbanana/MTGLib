@@ -67,15 +67,20 @@ namespace MTGLib
 
         public List<PlayerOrOID> SetTargets { get; protected set; }
 
-        public Target(Func<PlayerOrOID, bool> condition)
-        {
-            this.condition = condition;
-        }
+        public Target(Func<PlayerOrOID, bool> condition) : this(condition, 1, 1)
+        { }
 
         public Target(Func<PlayerOrOID, bool> condition, int min, int max)
-         : this(condition) 
+         
         {
+            this.condition = condition;
             Min = min; Max = max;
+        }
+
+        public void Reset()
+        {
+            Declared = false;
+            SetTargets = null;
         }
 
         public bool Declare(OID source)

@@ -4,15 +4,65 @@ using System.Text;
 
 namespace MTGLib
 {
+    public class TapEvent : MTGEvent
+    {
+        public TapEvent(OID source) : base(source) { }
+
+        protected override bool SelfRevertable => true;
+
+        protected override bool ApplyAction()
+        {
+            var mtg = MTG.Instance;
+            if (mtg.FindZoneFromOID(source) != mtg.battlefield)
+                return false;
+            var obj = mtg.objects[source];
+            if (obj.permanentStatus.tapped)
+                return false;
+            obj.permanentStatus.tapped = true;
+            return true;
+        }
+
+        protected override void RevertAction()
+        {
+            MTG.Instance.objects[source].permanentStatus.tapped = false;
+        }
+    }
+
+    public class UntapEvent : MTGEvent
+    {
+        public UntapEvent(OID source) : base(source) { }
+
+        protected override bool SelfRevertable => true;
+
+        protected override bool ApplyAction()
+        {
+            var mtg = MTG.Instance;
+            if (mtg.FindZoneFromOID(source) != mtg.battlefield)
+                return false;
+            var obj = mtg.objects[source];
+            if (!obj.permanentStatus.tapped)
+                return false;
+            obj.permanentStatus.tapped = false;
+            return true;
+        }
+
+        protected override void RevertAction()
+        {
+            MTG.Instance.objects[source].permanentStatus.tapped = true;
+        }
+    }
+
     public class AddManaEvent : MTGEvent
     {
         public readonly int player;
         public readonly ManaSymbol mana;
-        internal AddManaEvent(OID source, int player, ManaSymbol mana) : base(source)
+        public AddManaEvent(OID source, int player, ManaSymbol mana) : base(source)
         {
             this.player = player;
             this.mana = mana;
         }
+
+        protected override bool SelfRevertable => true;
 
         protected override bool ApplyAction()
         {
@@ -20,10 +70,9 @@ namespace MTGLib
             return true;
         }
 
-        protected override bool RevertAction()
+        protected override void RevertAction()
         {
             MTG.Instance.players[player].manaPool.RemoveMana(mana);
-            return true;
         }
     }
 
@@ -31,21 +80,22 @@ namespace MTGLib
     {
         public readonly int player;
         public readonly ManaSymbol mana;
-        internal RemoveManaEvent(OID source, int player, ManaSymbol mana) : base(source)
+        public RemoveManaEvent(OID source, int player, ManaSymbol mana) : base(source)
         {
             this.player = player;
             this.mana = mana;
         }
+
+        protected override bool SelfRevertable => true;
 
         protected override bool ApplyAction()
         {
             return MTG.Instance.players[player].manaPool.RemoveMana(mana);
         }
 
-        protected override bool RevertAction()
+        protected override void RevertAction()
         {
             MTG.Instance.players[player].manaPool.AddMana(mana);
-            return true;
         }
     }
 
@@ -71,9 +121,107 @@ namespace MTGLib
             return true;
         }
 
-        protected override bool RevertAction()
+        protected override void RevertAction()
         {
-            return false;
+            MTG.Instance.MoveZone(oid, newZone, oldZone);
+        }
+
+        protected override bool SelfRevertable
+        {
+            get {
+                if (oldZone is Library)
+                    return false;
+                if (newZone is Library)
+                    return false;
+                return true;
+            }
+        }
+    }
+
+    public class GainLifeEvent : MTGEvent
+    {
+        public readonly int player;
+        public readonly int amount;
+
+        public GainLifeEvent(OID source, int player, int amount) : base(source)
+        {
+            this.player = player;
+            this.amount = amount;
+        }
+
+        protected override bool SelfRevertable => true;
+
+        protected override bool ApplyAction()
+        {
+            if (amount <= 0)
+                return false;
+
+            MTG.Instance.players[player].ChangeLife(amount);
+            return true;
+        }
+
+        protected override void RevertAction()
+        {
+            MTG.Instance.players[player].ChangeLife(-amount);
+        }
+    }
+
+    public class LoseLifeEvent : MTGEvent
+    {
+        public readonly int player;
+        public readonly int amount;
+
+        public LoseLifeEvent(OID source, int player, int amount) : base(source)
+        {
+            this.player = player;
+            this.amount = amount;
+        }
+
+        protected override bool SelfRevertable => true;
+
+        protected override bool ApplyAction()
+        {
+            if (amount <= 0)
+                return false;
+
+            MTG.Instance.players[player].ChangeLife(-amount);
+            return true;
+        }
+
+        protected override void RevertAction()
+        {
+            MTG.Instance.players[player].ChangeLife(amount);
+        }
+    }
+
+    public class DealDamageEvent : MTGEvent
+    {
+        public readonly PlayerOrOID target;
+        public readonly int amount;
+
+        public DealDamageEvent(OID source, PlayerOrOID target, int amount) : base(source)
+        {
+            this.target = target;
+            this.amount = amount;
+        }
+
+        protected override bool SelfRevertable => false;
+
+        protected override bool ApplyAction()
+        {
+            if (amount <= 0)
+                return false;
+            switch (target.type)
+            {
+                case (PlayerOrOID.ValueType.Player):
+                    PushChild(new LoseLifeEvent(source, target.Player, amount));
+                    break;
+                case (PlayerOrOID.ValueType.OID):
+                    throw new NotImplementedException();
+                default:
+                    throw new NotImplementedException();
+            }
+            return true;
         }
     }
 
@@ -94,52 +242,99 @@ namespace MTGLib
             OID oid = library.Get(0);
             if (oid == null)
                 return false;
-            return ApplyChild(new MoveZoneEvent(source, library, hand, oid));
+            return PushChild(new MoveZoneEvent(source, library, hand, oid));
         }
 
-        protected override bool RevertAction()
+        protected override bool SelfRevertable => true;
+    }
+
+    public class DiscardCardEvent : MTGEvent
+    {
+        public readonly OID oid;
+
+        internal DiscardCardEvent(OID source, OID oid) : base(source)
         {
-            return true;
+            this.oid = oid;
+        }
+
+        protected override bool SelfRevertable => true;
+
+        protected override bool ApplyAction()
+        {
+            var mtg = MTG.Instance;
+
+            Zone currentHand = mtg.FindZoneFromOID(oid);
+            Player currentPlayer = null;
+            foreach (var player in mtg.players)
+            {
+                if (player.hand == currentHand)
+                {
+                    currentPlayer = player;
+                    break;
+                }
+            }
+            if (currentPlayer == null)
+                return false;
+
+            return PushChild(new MoveZoneEvent(source, currentHand, currentPlayer.graveyard, oid));
         }
     }
 
     public abstract class MTGEvent
     {
-        private LinkedList<MTGEvent> children;
+        protected readonly LinkedList<MTGEvent> children = new LinkedList<MTGEvent>();
 
-        public readonly OID source;
+        public OID source { get; protected set; }
 
         public MTGEvent(OID source) { this.source = source; }
 
         protected abstract bool ApplyAction();
-        protected abstract bool RevertAction();
+        protected virtual void RevertAction() { }
 
-        protected bool ApplyChild(MTGEvent child)
+        protected bool PushChild(MTGEvent child)
         {
-            children.AddLast(child);
-            return child.Apply();
+            var result = MTG.Instance.PushEvent(child);
+            if (result)
+                children.AddLast(child);
+            return result;
         }
 
-        protected void RevertAllChildren()
+        // This can be overriden so stuff like the revertable check
+        // can be disabled.
+        protected virtual void RevertAllChildren()
         {
             while (children.Last != null)
             {
-                children.Last.Value.Revert();
+                if (children.Last.Value.Revertable)
+                    children.Last.Value.Revert();
                 children.RemoveLast();
             }
         }
 
-        public bool Apply()
+        public virtual bool Apply()
         {
             return ApplyAction();
         }
 
-        public bool Revert()
-        {
-            foreach (var child in children)
-                if (!child.Revert())
+        protected abstract bool SelfRevertable { get; }
+
+        protected virtual bool Revertable { get
+            {
+                if (!SelfRevertable)
                     return false;
-            return RevertAction();
+                foreach (var child in children)
+                    if (!child.Revertable)
+                        return false;
+                return true;
+            }
+        }
+
+        public virtual void Revert()
+        {
+            if (!Revertable)
+                return;
+            RevertAction();
+            RevertAllChildren();
         }
     }
 }

@@ -69,7 +69,7 @@ namespace MTGLib
 
     public class AbilityObject : MTGObject
     {
-        readonly OID source;
+        readonly public OID source;
 
         readonly ResolutionAbility resolutionAbility;
 
@@ -109,7 +109,7 @@ namespace MTGLib
             public List<StaticAbility> staticAbilities;
             public List<ResolutionAbility> spellAbilities;
             public List<ActivatedAbility> activatedAbilities;
-            public List<Cost> additionalCastingCosts;
+            public List<CostEvent> additionalCastingCosts;
         }
 
         public struct MTGObjectAttributes
@@ -138,10 +138,10 @@ namespace MTGLib
 
                 if (manaCost != null)
                 {
-                    castingCosts = new List<Cost>
-                    {
-                        new CostPayMana(manaCost)
-                    };
+                    castingCosts = new List<CostEvent>();
+                    foreach (var mana in manaCost) {
+                        castingCosts.Add(new PayManaCostEvent(mana));
+                    }
                     if (attr.additionalCastingCosts != null)
                     {
                         foreach (var cost in attr.additionalCastingCosts)
@@ -185,7 +185,7 @@ namespace MTGLib
             public List<StaticAbility> staticAbilities;
             public List<ResolutionAbility> spellAbilities;
             public List<ActivatedAbility> activatedAbilities;
-            public List<Cost> castingCosts;
+            public List<CostEvent> castingCosts;
         }
 
         public struct PermanentStatus
@@ -275,15 +275,24 @@ namespace MTGLib
 
         private List<int> paidCosts = new List<int>();
 
-        public bool DeclareTargets()
+        public IEnumerable<Target> Targets
         {
-            var oid = FindMyOID();
-            foreach (var res in attr.spellAbilities)
-            {
-                if (!res.DeclareTargets(oid))
-                    return false;
+            get {
+                foreach (var res in attr.spellAbilities)
+                {
+                    foreach (var target in res.Targets)
+                    {
+                        yield return target;
+                    }
+                }
             }
-            return true;
+        }
+
+        public IEnumerable<CostEvent> Costs { get
+            {
+                foreach (var cost in attr.castingCosts)
+                    yield return cost;
+            }
         }
 
         public bool CanPayCosts()
@@ -294,37 +303,6 @@ namespace MTGLib
                 if (!cost.CanPay(myOID)) return false;
             }
             return true;
-        }
-
-        public bool PayCastingCosts()
-        {
-            OID myOid = FindMyOID();
-            paidCosts.Clear();
-            for (int i = 0; i < attr.castingCosts.Count; i++)
-            {
-                var cost = attr.castingCosts[i];
-                bool result = cost.Pay(myOid);
-                if (result)
-                {
-                    paidCosts.Add(i);
-                }
-                else
-                {
-                    RepayPaidCosts();
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        private void RepayPaidCosts()
-        {
-            var myOid = FindMyOID();
-            foreach (int i in paidCosts)
-            {
-                var cost = attr.castingCosts[i];
-                cost.ReversePay(myOid);
-            }
         }
 
         public virtual void Resolve()

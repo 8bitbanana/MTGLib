@@ -6,6 +6,16 @@ namespace MTGLib
 {
     public static class EnumStrings
     {
+        public static string GetString(this AbilityObject.AbilityType abilityType)
+        {
+            return abilityType switch
+            {
+                AbilityObject.AbilityType.Activated => "Activated Ability",
+                AbilityObject.AbilityType.Triggered => "Triggered Ability",
+                _ => throw new NotImplementedException()
+            };
+        }
+
         public static string GetString(this MTGObject.CardType cardType)
         {
             return cardType switch
