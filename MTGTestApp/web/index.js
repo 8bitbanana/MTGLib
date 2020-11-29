@@ -83,6 +83,12 @@ function processData(data) {
 		var pref = `#p${playerid} `;
 
 		var header = `Player ${playerid+1} - ${data.players[playerid].life} life`
+		if (data.players[playerid].manaPool.length > 0) {
+			header += " - Mana: ";
+			for (const mana of data.players[playerid].manaPool) {
+				header += mana;
+			}
+		}
 		$(pref+".player-header h1").text(header);
 
 		var pbattlefield = getOidsControlledBy(playerid, data.battlefield);

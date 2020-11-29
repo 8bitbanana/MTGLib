@@ -75,12 +75,20 @@ namespace MTGTestApp
 
             public int life;
 
+            public List<string> manaPool;
+
             public void Import(Player player)
             {
                 library = GetZoneInfo(player.library);
                 hand = GetZoneInfo(player.hand);
                 graveyard = GetZoneInfo(player.graveyard);
                 life = player.life;
+
+                manaPool = new List<string>();
+                foreach (var mana in player.manaPool)
+                {
+                    manaPool.Add(mana.ToString());
+                }
             }
         }
 
