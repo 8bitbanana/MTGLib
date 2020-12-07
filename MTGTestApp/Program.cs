@@ -239,10 +239,12 @@ namespace MTGTestApp
 
             BoardViewer boardViewer = new BoardViewer();
             Thread boardViewerThread = new Thread(boardViewer.Run);
+            boardViewerThread.Name = "Board Viewer Thread";
             boardViewerThread.Start();
             boardViewer.Update(mtg);
 
             Thread gameLoopThread = new Thread(mtg.GameLoop);
+            gameLoopThread.Name = "Game Loop Thread";
             gameLoopThread.Start();
 
             while (true)
