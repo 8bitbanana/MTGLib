@@ -17,6 +17,32 @@ namespace MTGLib
         }
     }
 
+    public class PushTriggeredAbilityEvent : MTGEvent
+    {
+        public readonly MTG.TriggeredAbilityEntry ability;
+
+        public PushTriggeredAbilityEvent(OID source, MTG.TriggeredAbilityEntry ability)
+            : base(source)
+        {
+            this.ability = ability;
+        }
+
+        protected override bool SelfRevertable => true;
+
+        protected override bool ApplyAction()
+        {
+            if (MTG.Instance.PendingTriggeredAbilities.Contains(ability))
+                throw new InvalidOperationException("This ability is already pending.");
+            MTG.Instance.PendingTriggeredAbilities.Add(ability);
+            return true;
+        }
+
+        protected override void RevertAction()
+        {
+            MTG.Instance.PendingTriggeredAbilities.Remove(ability);
+        }
+    }
+
     public class GenerateAbilityObjectEvent : MTGEvent
     {
         public readonly ResolutionAbility resolution;

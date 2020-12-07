@@ -23,6 +23,14 @@ namespace MTGLib
 
         public override string ToString()
         {
+            if (MTG.Instance != null)
+            {
+                if (MTG.Instance.objects.TryGetValue(this, out var obj))
+                {
+                    if (obj.attr.name != null)
+                        return obj.attr.name;
+                }
+            }
             return guid.ToString();
         }
 
@@ -84,8 +92,6 @@ namespace MTGLib
         }
 
         public override Color identity => throw new NotImplementedException();
-        public override MTGObjectAttributes attr => throw new NotImplementedException();
-        public override BaseCardAttributes baseattr => throw new NotImplementedException();
 
         public override void Resolve()
         {
@@ -109,6 +115,7 @@ namespace MTGLib
             public List<StaticAbility> staticAbilities;
             public List<ResolutionAbility> spellAbilities;
             public List<ActivatedAbility> activatedAbilities;
+            public List<TriggeredAbility> triggeredAbilities;
             public List<CostEvent> additionalCastingCosts;
         }
 
@@ -125,6 +132,7 @@ namespace MTGLib
                 subTypes = attr.subTypes;
                 staticAbilities = attr.staticAbilities;
                 activatedAbilities = attr.activatedAbilities;
+                triggeredAbilities = attr.triggeredAbilities;
                 spellAbilities = attr.spellAbilities;
 
                 controller = attr.owner;
@@ -170,6 +178,8 @@ namespace MTGLib
                     spellAbilities = new List<ResolutionAbility>();
                 if (activatedAbilities == null)
                     activatedAbilities = new List<ActivatedAbility>();
+                if (triggeredAbilities == null)
+                    triggeredAbilities = new List<TriggeredAbility>();
                 // Casting costs can stay null
             }
 
@@ -185,6 +195,7 @@ namespace MTGLib
             public List<StaticAbility> staticAbilities;
             public List<ResolutionAbility> spellAbilities;
             public List<ActivatedAbility> activatedAbilities;
+            public List<TriggeredAbility> triggeredAbilities;
             public List<CostEvent> castingCosts;
         }
 
@@ -295,9 +306,11 @@ namespace MTGLib
             }
         }
 
-        public bool CanPayCosts()
+        public bool CanPayCastingCosts()
         {
             OID myOID = FindMyOID();
+            if (attr.castingCosts == null)
+                return false;
             foreach(var cost in attr.castingCosts)
             {
                 if (!cost.CanPay(myOID)) return false;

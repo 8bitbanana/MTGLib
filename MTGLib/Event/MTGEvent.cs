@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Reflection;
 
 namespace MTGLib
 {
@@ -305,7 +306,6 @@ namespace MTGLib
 
         protected override bool ApplyAction()
         {
-
             effect(source, targets, callback);
             return true;
         }
@@ -330,21 +330,34 @@ namespace MTGLib
             return result;
         }
 
-        // This can be overriden so stuff like the revertable check
-        // can be disabled.
-        protected virtual void RevertAllChildren()
+        protected void RevertAllChildren()
         {
             while (children.Last != null)
             {
-                if (children.Last.Value.Revertable)
-                    children.Last.Value.Revert();
+                children.Last.Value.Revert();
                 children.RemoveLast();
+            }
+        }
+
+        protected void CheckTriggers()
+        {
+            foreach (var entry in MTG.Instance.TriggeredAbilities(this))
+            {
+                if (entry.ability.DoesTrigger(entry.source, this))
+                {
+                    PushChild(new PushTriggeredAbilityEvent(
+                        source, entry
+                    ));
+                }
             }
         }
 
         public virtual bool Apply()
         {
-            return ApplyAction();
+            bool result = ApplyAction();
+            if (result)
+                CheckTriggers();
+            return result;
         }
 
         protected abstract bool SelfRevertable { get; }
@@ -368,9 +381,9 @@ namespace MTGLib
                 return;
             }
                 
-            Console.WriteLine($"{GetType().Name} reverted!");
             RevertAction();
             RevertAllChildren();
+            Console.WriteLine($"{GetType().Name} reverted!");
         }
     }
 }

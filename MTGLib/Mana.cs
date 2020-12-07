@@ -243,6 +243,8 @@ namespace MTGLib
             return manaSymbols.GetEnumerator();
         }
 
+        public ManaCost(int generic) : this(generic, new ManaSymbol[0]) { }
+
         public ManaCost(params ManaSymbol[] mana)
         {
             manaSymbols.AddRange(mana);

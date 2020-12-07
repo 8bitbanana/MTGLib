@@ -25,7 +25,7 @@ namespace UnitTests
             Assert.AreEqual(testobj.attr.power, 1);
             Assert.AreEqual(testobj.attr.toughness, 1);
 
-            var contEffect = new ContinuousEffect(ContinuousEffect.Duration.Infinite);
+            var contEffect = new ContinuousEffect(null, ContinuousEffect.Duration.Infinite);
 
             // All creatures get +2/+0
             contEffect.AddModification(
@@ -60,7 +60,7 @@ namespace UnitTests
             Assert.AreEqual(testobj.attr.toughness, 0);
 
             // All blue creatures are green
-            contEffect = new ContinuousEffect(ContinuousEffect.Duration.Infinite);
+            contEffect = new ContinuousEffect(null, ContinuousEffect.Duration.Infinite);
             contEffect.AddModification(
                 new ColorMod
                 {

@@ -145,6 +145,10 @@ namespace MTGLib
             Resolved = true;
         }
 
+        public bool Resolve(T choice)
+        {
+            return Resolve(new List<T> { choice });
+        }
         public bool Resolve(List<T> choices)
         {
             if (Resolved)
@@ -346,7 +350,7 @@ namespace MTGLib
                 if (!mtg.CanCastSorceries && !cardtypes.Contains(MTGObject.CardType.Instant))
                     continue;
 
-                if (!mtg.objects[oid].CanPayCosts())
+                if (!mtg.objects[oid].CanPayCastingCosts())
                     continue;
 
                 Options.Add(new PriorityOption

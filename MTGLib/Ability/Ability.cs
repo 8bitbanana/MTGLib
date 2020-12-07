@@ -6,23 +6,40 @@ namespace MTGLib
 {
     public class StaticAbility
     {
+        public delegate bool ActiveCondition(OID source);
+        ActiveCondition activeCondition;
+
         List<Modification> modifications = new List<Modification>();
 
-        public StaticAbility() {}
-
-        public StaticAbility(params Modification[] mods)
+        public StaticAbility(ActiveCondition activeCondition, params Modification[] mods)
         {
+            this.activeCondition = activeCondition;
             modifications.AddRange(mods);
+            SetActiveConditionIfNull();
         }
 
-        public void AddModification(Modification mod)
-        {
-            modifications.Add(mod);
-        }
+        public StaticAbility(params Modification[] modifications)
+            : this(null, modifications) { }
 
         public IReadOnlyList<Modification> GetModifications()
         {
             return modifications.AsReadOnly();
+        }
+
+        public bool IsActive(OID source)
+        {
+            return activeCondition(source);
+        }
+
+        protected static bool DefaultCondition(OID source)
+        {
+            return MTG.Instance.FindZoneFromOID(source) == MTG.Instance.battlefield;
+        }
+
+        protected virtual void SetActiveConditionIfNull()
+        {
+            if (activeCondition == null)
+                activeCondition = DefaultCondition;
         }
     }
 

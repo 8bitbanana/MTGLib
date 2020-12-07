@@ -45,8 +45,7 @@ namespace MTGLib
 
         public static EventContainerAddMana Auto(OID source, int player, ManaCost mana)
         {
-            var list = new ManaSymbol[mana.manaSymbols.Count];
-            return Auto(source, player, list);
+            return Auto(source, player, mana.manaSymbols.ToArray());
         }
 
         public EventContainerAddMana(OID source, params AddManaEvent[] events) : base(source, events) { }

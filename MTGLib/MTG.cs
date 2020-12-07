@@ -6,7 +6,7 @@ using System.Threading;
 namespace MTGLib
 {
 
-    public class MTG
+    public partial class MTG
     {
         private static MTG instance;
         public static MTG Instance {
@@ -23,6 +23,116 @@ namespace MTGLib
 
         public List<ContinuousEffect> continuousEffects = new List<ContinuousEffect>();
 
+        private List<Modification> _allModifications = new List<Modification>();
+
+        public IReadOnlyList<Modification> AllModifications
+        {
+            get { return _allModifications.AsReadOnly(); }
+        }
+
+        private Dictionary<Type, List<TriggeredAbilityEntry>> _allTriggeredAbilities = new Dictionary<Type, List<TriggeredAbilityEntry>>();
+
+        public IEnumerable<TriggeredAbilityEntry> TriggeredAbilities(MTGEvent mtgevent)
+        {
+            Type type = mtgevent.GetType();
+            if (_allTriggeredAbilities.TryGetValue(type, out var abilities))
+            {
+                foreach (var ability in abilities)
+                {
+                    yield return ability;
+                }
+            }
+        }
+
+        public struct TriggeredAbilityEntry
+        {
+            public OID source; public TriggeredAbility ability;
+        }
+
+        private void UpdateAllTriggeredAbilities()
+        {
+            var allAbilities = new Dictionary<Type, List<TriggeredAbilityEntry>>();
+
+            void _AddAbility(OID oid, TriggeredAbility ability)
+            {
+                Type eventType = ability.EventType;
+                var entry = new TriggeredAbilityEntry
+                {
+                    source = oid,
+                    ability = ability
+                };
+                if (allAbilities.TryGetValue(eventType, out var list))
+                {
+                    list.Add(entry);
+                }
+                else
+                {
+                    allAbilities.Add(
+                        eventType,
+                        new List<TriggeredAbilityEntry>() { entry }
+                    );
+                }
+            }
+
+            foreach (var effect in continuousEffects)
+            {
+                foreach (TriggeredAbility ability in effect.GetTriggeredAbilities())
+                {
+                    _AddAbility(effect.source, ability);
+                }
+            }
+            foreach (var kvp in objects)
+            {
+                var oid = kvp.Key;
+                var obj = kvp.Value;
+                foreach (TriggeredAbility ability in obj.attr.triggeredAbilities)
+                {
+                    if (ability.IsActive(oid))
+                        _AddAbility(oid, ability);
+                }
+            }
+
+            _allTriggeredAbilities = allAbilities;
+        }
+
+        private void UpdateAllModifications()
+        {
+            List<Modification> allMods = new List<Modification>();
+            foreach (var effect in continuousEffects)
+            {
+                allMods.AddRange(effect.GetModifications());
+            }
+            foreach (var kvp in objects)
+            {
+                var oid = kvp.Key;
+                var obj = kvp.Value;
+                foreach (StaticAbility ability in obj.attr.staticAbilities)
+                {
+                    if (ability.IsActive(oid))
+                        allMods.AddRange(ability.GetModifications());
+                }
+            }
+            _allModifications = allMods;
+        }
+
+        public List<TriggeredAbilityEntry> PendingTriggeredAbilities = new List<TriggeredAbilityEntry>();
+
+        public void HandlePendingTriggers()
+        {
+            while (PendingTriggeredAbilities.Count > 0)
+            {
+                var entry = PendingTriggeredAbilities[0];
+                PendingTriggeredAbilities.RemoveAt(0);
+                var objevent = new GenerateAbilityObjectEvent(
+                    entry.source, entry.ability.resolution, AbilityObject.AbilityType.Triggered
+                );
+                PushEvent(objevent);
+                foreach (var target in objevent.resolution.Targets)
+                {
+                    PushEvent(new DeclareTargetEvent(entry.source, target));
+                }
+            }
+        }
 
         public struct TurnInfo
         {
@@ -91,9 +201,6 @@ namespace MTGLib
         }
         public TurnInfo turn = new TurnInfo();
 
-        int noActionPassCount = 0;
-        bool haveAllPlayersPassed { get { return noActionPassCount >= players.Count; } }
-
         public MTG()
             : this (
                   new List<MTGObject.BaseCardAttributes>(),
@@ -123,33 +230,6 @@ namespace MTGLib
         }
 
         static int indent = 0;
-
-        public bool PushEvent(MTGEvent mtgEvent)
-        {
-            string indentstr = "";
-            for (int i = 0; i < indent; i++)
-                indentstr += " : ";
-
-            Console.WriteLine($"{indentstr}{mtgEvent.GetType().Name} pushed");
-            indent++;
-            var result = mtgEvent.Apply();
-            indent--;
-            Console.WriteLine($"{indentstr}{mtgEvent.GetType().Name} resolved");
-            return result;
-        }
-
-        public bool IsValidAnyTarget(PlayerOrOID playerOrOID)
-        {
-            if (playerOrOID.IsPlayer)
-                return true;
-
-            var obj = MTG.Instance.objects[playerOrOID.OID];
-            if (!obj.attr.cardTypes.Contains(MTGObject.CardType.Creature))
-                return false;
-            if (FindZoneFromOID(playerOrOID.OID) != battlefield)
-                return false;
-            return true;
-        }
 
         public bool IsPermanent(OID oid)
         {
@@ -302,6 +382,33 @@ namespace MTGLib
             }
         }
 
+        public bool PushEvent(MTGEvent mtgEvent)
+        {
+            string indentstr = "";
+            for (int i = 0; i < indent; i++)
+                indentstr += " : ";
+
+            Console.WriteLine($"{indentstr}{mtgEvent.GetType().Name} pushed");
+            indent++;
+            var result = mtgEvent.Apply();
+            indent--;
+            Console.WriteLine($"{indentstr}{mtgEvent.GetType().Name} resolved");
+            return result;
+        }
+
+        public bool IsValidAnyTarget(PlayerOrOID playerOrOID)
+        {
+            if (playerOrOID.IsPlayer)
+                return true;
+
+            var obj = MTG.Instance.objects[playerOrOID.OID];
+            if (!obj.attr.cardTypes.Contains(MTGObject.CardType.Creature))
+                return false;
+            if (FindZoneFromOID(playerOrOID.OID) != battlefield)
+                return false;
+            return true;
+        }
+
         public void PushChoice(Choice choice)
         {
             if (choice.Resolved)
@@ -335,33 +442,17 @@ namespace MTGLib
             ChoiceResolvedEvent.Set();
         }
 
-        private void UpdateAllModifications()
-        {
-            List<Modification> allMods = new List<Modification>();
-            foreach (var effect in continuousEffects)
-            {
-                allMods.AddRange(effect.GetModifications());
-            }
-            foreach (var oid in battlefield)
-            {
-                var obj = objects[oid];
-                foreach (StaticAbility ability in obj.attr.staticAbilities)
-                {
-                    allMods.AddRange(ability.GetModifications());
-                }
-            }
-            _allModifications = allMods;
-        }
-
         public void CalculateBoardState()
         {
             UpdateAllModifications();
+            UpdateAllTriggeredAbilities();
             foreach (var x in objects)
             {
                 OID oid = x.Key;
                 MTGObject obj = x.Value;
                 obj.CalculateAttributes();
             }
+            HandlePendingTriggers();
         }
 
         public void MoveZone(OID oid, Zone newZone)
@@ -439,15 +530,6 @@ namespace MTGLib
                 zones.Add(player.graveyard);
             }
             return zones.AsReadOnly();
-        }
-
-        private List<Modification> _allModifications = new List<Modification>();
-
-        public IReadOnlyList<Modification> AllModifications
-        {
-            get {
-                return _allModifications.AsReadOnly();
-            }
         }
 
         public bool CanCastSorceries

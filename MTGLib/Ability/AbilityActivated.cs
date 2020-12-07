@@ -61,7 +61,8 @@ namespace MTGLib
         {
             get
             {
-                foreach (var cost in costs) yield return cost;
+                foreach (var cost in costs)
+                    yield return cost;
             }
         }
 

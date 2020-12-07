@@ -55,6 +55,7 @@ namespace MTGTestApp
 
                                 mtg_.continuousEffects.Add(
                                     new ContinuousEffect(
+                                        source,
                                         ContinuousEffect.Duration.EndOfTurn,
                                         new ContinuousEffect.DurationData
                                         {
@@ -79,6 +80,36 @@ namespace MTGTestApp
                                 );
                             }
                         }
+                    )
+                }
+            };
+
+            var landfall = new MTGObject.BaseCardAttributes()
+            {
+                name = "Landfall Enchantment",
+                manaCost = new ManaCost(),
+                cardTypes = new HashSet<MTGObject.CardType> { MTGObject.CardType.Enchantment },
+                triggeredAbilities = new List<TriggeredAbility>
+                {
+                    new TriggeredAbility<MoveZoneEvent>(
+                        (source, mtgevent) =>
+                        {
+                            if (mtgevent.newZone != MTG.Instance.battlefield)
+                                return false;
+                            var trigobj = MTG.Instance.objects[mtgevent.oid];
+                            var sourceobj = MTG.Instance.objects[source];
+                            return trigobj.attr.controller == sourceobj.attr.controller;
+                        },
+                        new EffectEvent.Effect[]
+                        {
+                            (source, targets, callback) =>
+                            {
+                                var damage = 1;
+                                var target = targets[0].SetTargets[0];
+                                callback(new DealDamageEvent(source, target, damage));
+                            }
+                        },
+                        new Target[] { Target.AnyTarget }
                     )
                 }
             };
@@ -198,7 +229,7 @@ namespace MTGTestApp
             for (int i=0; i<17; i++)
             {
                 lib1.Add(ogre);
-                lib1.Add(bolt);
+                lib1.Add(landfall);
                 lib2.Add(crab);
                 lib2.Add(izzetSignet);
             }

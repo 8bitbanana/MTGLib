@@ -35,6 +35,14 @@ namespace MTGLib
 
         protected override bool SelfRevertable => true;
 
+        // A manacost doesn't care that one of it's children was irreversable.
+        public sealed override void Revert()
+        {
+            RevertAction();
+            RevertAllChildren();
+            Console.WriteLine($"{GetType().Name} reverted!");
+        }
+
         protected override bool ApplyAction()
         {
             var mtg = MTG.Instance;
@@ -87,7 +95,6 @@ namespace MTGLib
     // A cost is disconnected from it's source
     public abstract class CostEvent : MTGEvent
     {
-
         public CostEvent() : base(null)
         {
             
@@ -110,13 +117,5 @@ namespace MTGLib
         }
 
         protected abstract bool IsPaymentPossible { get; }
-
-        // A cost doesn't care that one of it's children was irreversable.
-        public sealed override void Revert()
-        {
-            Console.WriteLine($"{GetType().Name} reverted!");
-            RevertAllChildren();
-            RevertAction();
-        }
     }
 }
