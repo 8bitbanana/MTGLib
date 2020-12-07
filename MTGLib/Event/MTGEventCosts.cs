@@ -95,6 +95,8 @@ namespace MTGLib
     // A cost is disconnected from it's source
     public abstract class CostEvent : MTGEvent
     {
+        public delegate CostEvent CostGen();
+
         public CostEvent() : base(null)
         {
             
@@ -105,7 +107,7 @@ namespace MTGLib
             return MTG.Instance.objects[source].attr.controller;
         }
 
-        public void SetSource(OID source)
+        public virtual void SetSource(OID source)
         {
             this.source = source;
         }

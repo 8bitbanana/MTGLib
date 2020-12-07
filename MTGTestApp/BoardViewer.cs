@@ -50,7 +50,7 @@ namespace MTGTestApp
                 {
                     var obj = new ObjectInfo();
                     obj.Import(kvp.Value);
-                    objects.Add(kvp.Key.ToString(), obj);
+                    objects.Add(kvp.Key.GuidString, obj);
                 }
 
                 players = new List<PlayerInfo>();
@@ -97,7 +97,7 @@ namespace MTGTestApp
             var l = new List<string>();
             foreach (OID oid in zone)
             {
-                l.Add(oid.ToString());
+                l.Add(oid.GuidString);
             }
             return l;
         }

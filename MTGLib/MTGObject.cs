@@ -34,6 +34,13 @@ namespace MTGLib
             return guid.ToString();
         }
 
+        public string GuidString
+        {
+            get {
+                return guid.ToString();
+            }            
+        }
+
         public override int GetHashCode()
         {
             return guid.GetHashCode();
@@ -116,7 +123,7 @@ namespace MTGLib
             public List<ResolutionAbility> spellAbilities;
             public List<ActivatedAbility> activatedAbilities;
             public List<TriggeredAbility> triggeredAbilities;
-            public List<CostEvent> additionalCastingCosts;
+            public List<CostEvent.CostGen> additionalCastingCosts;
         }
 
         public struct MTGObjectAttributes
@@ -146,9 +153,9 @@ namespace MTGLib
 
                 if (manaCost != null)
                 {
-                    castingCosts = new List<CostEvent>();
+                    castingCosts = new List<CostEvent.CostGen>();
                     foreach (var mana in manaCost) {
-                        castingCosts.Add(new PayManaCostEvent(mana));
+                        castingCosts.Add(() => { return new PayManaCostEvent(mana); });
                     }
                     if (attr.additionalCastingCosts != null)
                     {
@@ -196,7 +203,7 @@ namespace MTGLib
             public List<ResolutionAbility> spellAbilities;
             public List<ActivatedAbility> activatedAbilities;
             public List<TriggeredAbility> triggeredAbilities;
-            public List<CostEvent> castingCosts;
+            public List<CostEvent.CostGen> castingCosts;
         }
 
         public struct PermanentStatus
@@ -301,8 +308,13 @@ namespace MTGLib
 
         public IEnumerable<CostEvent> Costs { get
             {
+                OID oid = FindMyOID();
                 foreach (var cost in attr.castingCosts)
-                    yield return cost;
+                {
+                    CostEvent instance = cost();
+                    instance.SetSource(oid);
+                    yield return instance;
+                }
             }
         }
 
@@ -313,7 +325,7 @@ namespace MTGLib
                 return false;
             foreach(var cost in attr.castingCosts)
             {
-                if (!cost.CanPay(myOID)) return false;
+                if (!cost().CanPay(myOID)) return false;
             }
             return true;
         }

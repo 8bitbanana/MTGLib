@@ -11,12 +11,12 @@ namespace MTGLib
             return BattlefieldCondition(oid) && ControllerCondition(oid);
         }
 
-        public ManaAbility(CostEvent[] costs, Func<OID, bool> condition, EffectEvent.Effect[] effects)
+        public ManaAbility(CostEvent.CostGen[] costs, Func<OID, bool> condition, EffectEvent.Effect[] effects)
             : base(costs, condition, effects, null)
         {
 
         }
-        public ManaAbility(CostEvent[] costs, EffectEvent.Effect[] effects)
+        public ManaAbility(CostEvent.CostGen[] costs, EffectEvent.Effect[] effects)
             : this(costs, null, effects) { }
 
 
@@ -52,7 +52,7 @@ namespace MTGLib
             return BattlefieldCondition(oid) && ControllerCondition(oid);
         }
 
-        protected List<CostEvent> costs = new List<CostEvent>();
+        protected List<CostEvent.CostGen> costs = new List<CostEvent.CostGen>();
 
         public readonly ResolutionAbility resolution;
         protected Func<OID, bool> condition;
@@ -61,12 +61,11 @@ namespace MTGLib
         {
             get
             {
-                foreach (var cost in costs)
-                    yield return cost;
+                foreach (var cost in costs) yield return cost();
             }
         }
 
-        public ActivatedAbility(CostEvent[] costs, Func<OID, bool> condition, EffectEvent.Effect[] effects, Target[] targets)
+        public ActivatedAbility(CostEvent.CostGen[] costs, Func<OID, bool> condition, EffectEvent.Effect[] effects, Target[] targets)
         {
             this.costs.AddRange(costs);
             this.condition = condition;
@@ -85,15 +84,15 @@ namespace MTGLib
             if (!condition(source))
                 return false;
             foreach (var cost in costs)
-                if (!cost.CanPay(source))
+                if (!cost().CanPay(source))
                     return false;
             return true;
         }
 
-        public ActivatedAbility(CostEvent[] costs, EffectEvent.Effect[] effects)
+        public ActivatedAbility(CostEvent.CostGen[] costs, EffectEvent.Effect[] effects)
             : this(costs, null, effects, null) { }
 
-        public ActivatedAbility(CostEvent[] costs, EffectEvent.Effect[] effects, Target[] targets)
+        public ActivatedAbility(CostEvent.CostGen[] costs, EffectEvent.Effect[] effects, Target[] targets)
             : this(costs, null, effects, targets) { }
 
     }

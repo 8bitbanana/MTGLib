@@ -13,7 +13,6 @@ namespace UnitTests
         public void TestMTG()
         {
             var mtg = new MTG();
-            mtg.Start();
             Assert.ReferenceEquals(MTG.Instance, mtg);
         }
 
@@ -29,9 +28,9 @@ namespace UnitTests
                 activatedAbilities = new List<ActivatedAbility>
                 {
                     new ManaAbility(
-                        new CostEvent[]
+                        new CostEvent.CostGen[]
                         {
-                            new TapSelfCostEvent() // PASSES BY REFERENCE
+                            () => {return new TapSelfCostEvent(); }
                         },
                         new EffectEvent.Effect[] {
                             (source, targets, callback) => {
@@ -50,10 +49,10 @@ namespace UnitTests
                 activatedAbilities = new List<ActivatedAbility>
                 {
                     new ManaAbility(
-                        new CostEvent[]
+                        new CostEvent.CostGen[]
                         {
-                            new TapSelfCostEvent(),
-                            EventContainerPayManaCost.Auto(new ManaCost(1))
+                            () => {return new TapSelfCostEvent(); },
+                            () => {return EventContainerPayManaCost.Auto(new ManaCost(1)); }
                         },
                         new EffectEvent.Effect[]
                         {
@@ -276,6 +275,7 @@ namespace UnitTests
                             option.manaSymbol == ManaSymbol.Red)
                         {
                             cast.Resolve(option);
+                            break;
                         }
                     }
                 }
@@ -312,8 +312,8 @@ namespace UnitTests
             // Weird oid is not reverted - it drew cards
             Assert.IsTrue(mtg.objects[weirdOID].permanentStatus.tapped);
             Assert.IsTrue(mtg.objects[mountain1OID].permanentStatus.tapped);
-            // The card draw isn't reverted
-            Assert.AreEqual(mtg.players[0].hand.Count, cardcount + 2);
+            // The card draw isn't reverted, and the spell is returned to hand
+            Assert.AreEqual(mtg.players[0].hand.Count, cardcount + 3);
 
             // We still have 3 mana
             Assert.AreEqual(mtg.players[0].manaPool.Count, 3);

@@ -38,14 +38,14 @@ namespace MTGTestApp
                 activatedAbilities = new List<ActivatedAbility>
                 {
                     new ActivatedAbility(
-                        new CostEvent[]
+                        new CostEvent.CostGen[]
                         {
-                            EventContainerPayManaCost.Auto(new ManaCost(
+                            () => {return EventContainerPayManaCost.Auto(new ManaCost(
                                 ManaSymbol.HybridBoros,
                                 ManaSymbol.HybridBoros,
                                 ManaSymbol.HybridBoros,
                                 ManaSymbol.HybridBoros
-                            ))
+                            )); }
                         },
                         new EffectEvent.Effect[]
                         {
@@ -123,9 +123,9 @@ namespace MTGTestApp
                 activatedAbilities = new List<ActivatedAbility>
                 {
                     new ManaAbility(
-                        new CostEvent[]
+                        new CostEvent.CostGen[]
                         {
-                            new TapSelfCostEvent()
+                            () => {return new TapSelfCostEvent(); }
                         },
                         new EffectEvent.Effect[] {
                             (source, targets, callback) => {
@@ -145,9 +145,9 @@ namespace MTGTestApp
                 activatedAbilities = new List<ActivatedAbility>
                 {
                     new ManaAbility(
-                        new CostEvent[]
+                        new CostEvent.CostGen[]
                         {
-                            new TapSelfCostEvent()
+                            () => {return new TapSelfCostEvent(); }
                         },
                         new EffectEvent.Effect[] {
                             (source, targets, callback) => {
@@ -179,10 +179,10 @@ namespace MTGTestApp
                 activatedAbilities = new List<ActivatedAbility>
                 {
                     new ManaAbility(
-                        new CostEvent[]
+                        new CostEvent.CostGen[]
                         {
-                            new TapSelfCostEvent(),
-                            EventContainerPayManaCost.Auto(new ManaCost(1))
+                            () => {return new TapSelfCostEvent(); },
+                            () => {return EventContainerPayManaCost.Auto(new ManaCost(1)); }
                         },
                         new EffectEvent.Effect[]
                         {

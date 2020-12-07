@@ -107,6 +107,15 @@ namespace MTGLib
             }
         }
 
+        public override void SetSource(OID source)
+        {
+            base.SetSource(source);
+            foreach (var evnt in events)
+            {
+                evnt.SetSource(source);
+            }
+        }
+
         protected override bool IsPaymentPossible { get
             {
                 foreach (var evnt in events)
